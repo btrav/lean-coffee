@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Lightbulb, ArrowRight, Users } from 'lucide-react';
+import { Plus, Lightbulb, ArrowRight, UserPlus, Users, X } from 'lucide-react';
 import { Topic, User } from '../types';
 import { TopicCard } from './TopicCard';
 import { StepTransition } from './StepTransition';
@@ -9,13 +9,12 @@ import { PhaseTimer } from './PhaseTimer';
 interface BrainstormingPhaseProps {
   topics: Topic[];
   currentUser: User;
-  isHost: boolean;
+  participants: User[];
   onAddTopic: (text: string) => void;
   onEditTopic: (topicId: string, newText: string) => void;
   onDeleteTopic: (topicId: string) => void;
   onNextPhase: () => void;
-  roomCode: string;
-  participants: User[];
+  onAddParticipant: (name: string) => void;
   phaseStartTime?: number;
   phaseTimeLimit?: number;
 }
@@ -23,28 +22,37 @@ interface BrainstormingPhaseProps {
 export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
   topics,
   currentUser,
-  isHost,
+  participants,
   onAddTopic,
   onEditTopic,
   onDeleteTopic,
   onNextPhase,
-  roomCode,
-  participants,
+  onAddParticipant,
   phaseStartTime,
-  phaseTimeLimit
+  phaseTimeLimit,
 }) => {
   const [step, setStep] = useState(0);
   const [newTopic, setNewTopic] = useState('');
   const [showAnimation, setShowAnimation] = useState(false);
+  const [confirmingAdvance, setConfirmingAdvance] = useState(false);
+  const [newParticipantName, setNewParticipantName] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newTopic.trim()) {
-      onAddTopic(newTopic.trim());
-      setNewTopic('');
-      setShowAnimation(true);
-      setTimeout(() => setShowAnimation(false), 1000);
-    }
+    const trimmed = newTopic.trim();
+    if (!trimmed) return;
+    onAddTopic(trimmed);
+    setNewTopic('');
+    setShowAnimation(true);
+    setTimeout(() => setShowAnimation(false), 1000);
+  };
+
+  const handleAddParticipant = (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = newParticipantName.trim();
+    if (!name) return;
+    onAddParticipant(name);
+    setNewParticipantName('');
   };
 
   const stepLabels = ['Add Topics', 'Review & Continue'];
@@ -56,33 +64,18 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
         phaseTimeLimit={phaseTimeLimit}
         phaseName="Brainstorming"
       />
-      
+
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-3xl mb-4 shadow-lg">
-            <Lightbulb className="w-8 h-8 text-white" />
+            <Lightbulb className="w-8 h-8 text-white" aria-hidden="true" />
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Brainstorming Phase</h1>
           <p className="text-xl text-gray-600">Share your discussion topics</p>
-          
-          <div className="flex items-center justify-center gap-4 mt-4 text-sm text-gray-500">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              Room: <span className="font-mono font-bold text-blue-600">{roomCode}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              {participants.length} participants
-            </div>
-          </div>
+          <p className="text-sm text-gray-500 mt-2">{participants.length} participant{participants.length !== 1 ? 's' : ''}</p>
         </div>
 
-        <ProgressIndicator
-          currentStep={step}
-          totalSteps={2}
-          stepLabels={stepLabels}
-        />
+        <ProgressIndicator currentStep={step} totalSteps={2} stepLabels={stepLabels} />
 
         {/* Step 0: Add Topic */}
         <StepTransition isActive={step === 0}>
@@ -90,12 +83,14 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
             <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">What would you like to discuss?</h2>
-                <p className="text-gray-600">Add topics that are important to you and the team</p>
+                <p className="text-gray-600">Add topics that matter to the team</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
+                  <label htmlFor="new-topic" className="sr-only">New topic</label>
                   <textarea
+                    id="new-topic"
                     value={newTopic}
                     onChange={(e) => setNewTopic(e.target.value)}
                     placeholder="e.g., How can we improve our sprint planning process?"
@@ -103,8 +98,8 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
                     maxLength={200}
                     autoFocus
                   />
-                  <div className="text-right text-sm text-gray-500 mt-2">
-                    {newTopic.length}/200 characters
+                  <div className="text-right text-sm text-gray-500 mt-2" aria-live="polite">
+                    {newTopic.length}/200
                   </div>
                 </div>
 
@@ -113,15 +108,15 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
                   disabled={!newTopic.trim()}
                   className="w-full bg-gradient-to-r from-green-500 to-blue-600 text-white py-4 px-6 rounded-2xl font-semibold text-lg hover:from-green-600 hover:to-blue-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] disabled:transform-none flex items-center justify-center gap-2"
                 >
-                  <Plus className="w-5 h-5" />
+                  <Plus className="w-5 h-5" aria-hidden="true" />
                   Add Topic
                 </button>
               </form>
 
               {showAnimation && (
-                <div className="mt-4 text-center">
+                <div className="mt-4 text-center" role="status" aria-live="polite">
                   <div className="inline-flex items-center gap-2 text-green-600 font-medium animate-bounce">
-                    ✨ Topic added successfully!
+                    ✨ Topic added!
                   </div>
                 </div>
               )}
@@ -143,7 +138,7 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
           <div className="space-y-6">
             <div className="text-center">
               <button
-                onClick={() => setStep(0)}
+                onClick={() => { setConfirmingAdvance(false); setStep(0); }}
                 className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors mb-6"
               >
                 ← Add another topic
@@ -152,11 +147,9 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
 
             {topics.length === 0 ? (
               <div className="bg-white rounded-3xl shadow-xl p-12 text-center border border-gray-100">
-                <Lightbulb className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <Lightbulb className="w-16 h-16 text-gray-300 mx-auto mb-4" aria-hidden="true" />
                 <h3 className="text-xl font-semibold text-gray-600 mb-2">No topics yet</h3>
-                <p className="text-gray-500 mb-6">
-                  Be the first to add a discussion topic! 🤔
-                </p>
+                <p className="text-gray-500 mb-6">Add your first discussion topic</p>
                 <button
                   onClick={() => setStep(0)}
                   className="bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-6 rounded-2xl font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
@@ -171,11 +164,10 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
                     <div
                       key={topic.id}
                       className="animate-fade-in"
-                      style={{ animationDelay: `${index * 100}ms` }}
+                      style={{ animationDelay: `${index * 80}ms` }}
                     >
                       <TopicCard
                         topic={topic}
-                        currentUser={currentUser}
                         onEdit={onEditTopic}
                         onDelete={onDeleteTopic}
                       />
@@ -183,53 +175,89 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
                   ))}
                 </div>
 
-                {isHost && (
-                  <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+                {/* Participants */}
+                <div className="bg-white rounded-3xl shadow-xl p-6 border border-gray-100">
+                  <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-blue-600" aria-hidden="true" />
+                    Participants ({participants.length})
+                  </h3>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {participants.map((p) => (
+                      <span key={p.id} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">
+                        <span className="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold" aria-hidden="true">
+                          {p.name.charAt(0).toUpperCase()}
+                        </span>
+                        {p.name}
+                      </span>
+                    ))}
+                  </div>
+                  <form onSubmit={handleAddParticipant} className="flex gap-2">
+                    <label htmlFor="participant-name" className="sr-only">Add participant name</label>
+                    <input
+                      id="participant-name"
+                      type="text"
+                      value={newParticipantName}
+                      onChange={(e) => setNewParticipantName(e.target.value)}
+                      placeholder="Add a participant..."
+                      className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                      maxLength={50}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!newParticipantName.trim()}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-1 font-medium"
+                      aria-label="Add participant"
+                    >
+                      <UserPlus className="w-4 h-4" aria-hidden="true" />
+                      Add
+                    </button>
+                  </form>
+                </div>
+
+                {/* Advance phase */}
+                <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+                  {!confirmingAdvance ? (
                     <div className="text-center">
                       <h3 className="text-xl font-bold text-gray-800 mb-2">Ready to vote?</h3>
                       <p className="text-gray-600 mb-6">
                         {topics.length} topic{topics.length !== 1 ? 's' : ''} ready for voting
                       </p>
                       <button
-                        onClick={onNextPhase}
+                        onClick={() => setConfirmingAdvance(true)}
                         className="bg-gradient-to-r from-purple-500 to-pink-600 text-white py-4 px-8 rounded-2xl font-semibold text-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] flex items-center gap-2 mx-auto"
                       >
                         Start Voting Phase
-                        <ArrowRight className="w-5 h-5" />
+                        <ArrowRight className="w-5 h-5" aria-hidden="true" />
                       </button>
                     </div>
-                  </div>
-                )}
-
-                {!isHost && (
-                  <div className="bg-blue-50 rounded-3xl p-6 border border-blue-200 text-center">
-                    <p className="text-blue-700">
-                      ⏳ Waiting for the host to start the voting phase...
-                    </p>
-                  </div>
-                )}
+                  ) : (
+                    <div className="text-center">
+                      <h3 className="text-xl font-bold text-gray-800 mb-2">Start voting now?</h3>
+                      <p className="text-gray-600 mb-6">You won't be able to add or remove topics after this.</p>
+                      <div className="flex gap-4 justify-center">
+                        <button
+                          onClick={() => setConfirmingAdvance(false)}
+                          className="flex items-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-2xl hover:border-gray-400 transition-colors font-medium"
+                        >
+                          <X className="w-4 h-4" aria-hidden="true" />
+                          Cancel
+                        </button>
+                        <button
+                          onClick={onNextPhase}
+                          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-2xl hover:from-purple-600 hover:to-pink-700 transition-all duration-200 shadow-lg font-semibold"
+                        >
+                          Yes, start voting
+                          <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>
         </StepTransition>
       </div>
-
-      <style jsx>{`
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.5s ease-out forwards;
-          opacity: 0;
-        }
-      `}</style>
     </div>
   );
 };

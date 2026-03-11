@@ -6,19 +6,17 @@ import { exportSummary } from '../utils/roomManager';
 interface CompletionPhaseProps {
   topics: Topic[];
   currentUser: User;
-  isHost: boolean;
-  onReset: () => void;
-  roomCode: string;
   participants: User[];
+  roomCode: string;
+  onReset: () => void;
 }
 
 export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
   topics,
   currentUser,
-  isHost,
-  onReset,
+  participants,
   roomCode,
-  participants
+  onReset,
 }) => {
   const discussedTopics = topics.filter(t => t.discussed);
   const skippedTopics = topics.filter(t => !t.discussed && t.votes.length > 0);
@@ -41,9 +39,8 @@ export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
     const summary = exportSummary(topics, roomCode, participants);
     try {
       await navigator.clipboard.writeText(summary);
-      // Could add a toast notification here
-    } catch (err) {
-      console.error('Failed to copy summary:', err);
+    } catch {
+      // clipboard API unavailable
     }
   };
 
@@ -53,99 +50,89 @@ export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Confetti effect
   React.useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
-      @keyframes confetti {
-        0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
-        100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
-      }
-      .confetti {
-        position: fixed;
-        width: 10px;
-        height: 10px;
-        background: #f59e0b;
-        animation: confetti 3s linear infinite;
-        z-index: 1000;
+      @keyframes confetti-fall {
+        0%   { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+        100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
       }
     `;
     document.head.appendChild(style);
 
-    // Create confetti particles
-    for (let i = 0; i < 50; i++) {
-      const confetti = document.createElement('div');
-      confetti.className = 'confetti';
-      confetti.style.left = Math.random() * window.innerWidth + 'px';
-      confetti.style.animationDelay = Math.random() * 3 + 's';
-      confetti.style.backgroundColor = ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#f97316'][Math.floor(Math.random() * 5)];
-      document.body.appendChild(confetti);
-      
-      setTimeout(() => {
-        if (document.body.contains(confetti)) {
-          document.body.removeChild(confetti);
-        }
-      }, 3000);
+    const COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#f97316', '#ec4899'];
+    const elements: HTMLDivElement[] = [];
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
+    for (let i = 0; i < 60; i++) {
+      const el = document.createElement('div');
+      const delay = Math.random() * 2;
+      const duration = 2.5 + Math.random() * 1.5;
+      el.style.cssText = `
+        position: fixed;
+        width: ${6 + Math.random() * 8}px;
+        height: ${6 + Math.random() * 8}px;
+        background: ${COLORS[Math.floor(Math.random() * COLORS.length)]};
+        left: ${Math.random() * 100}vw;
+        top: 0;
+        border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+        animation: confetti-fall ${duration}s ${delay}s ease-in forwards;
+        z-index: 1000;
+        pointer-events: none;
+      `;
+      document.body.appendChild(el);
+      elements.push(el);
+      const timer = setTimeout(() => {
+        if (document.body.contains(el)) document.body.removeChild(el);
+      }, (delay + duration + 0.1) * 1000);
+      timers.push(timer);
     }
 
     return () => {
-      if (document.head.contains(style)) {
-        document.head.removeChild(style);
-      }
+      timers.forEach(clearTimeout);
+      elements.forEach(el => { if (document.body.contains(el)) document.body.removeChild(el); });
+      if (document.head.contains(style)) document.head.removeChild(style);
     };
   }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 p-6">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-400 to-blue-500 rounded-3xl mb-6 shadow-lg">
-            <CheckCircle className="w-10 h-10 text-white" />
+            <CheckCircle className="w-10 h-10 text-white" aria-hidden="true" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-800 mb-3">Session Complete! 🎉</h1>
+          <h1 className="text-4xl font-bold text-gray-800 mb-3">Session Complete!</h1>
           <p className="text-xl text-gray-600">Great discussion, everyone!</p>
-          
-          <div className="flex items-center justify-center gap-4 mt-6 text-sm text-gray-500">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              Room: <span className="font-mono font-bold text-blue-600">{roomCode}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              {participants.length} participants
-            </div>
-          </div>
         </div>
 
-        {/* Session Stats */}
         <div className="bg-white rounded-3xl shadow-xl p-8 mb-8 border border-gray-100">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Session Summary</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="text-center">
               <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+                <CheckCircle className="w-8 h-8 text-green-600" aria-hidden="true" />
               </div>
               <div className="text-3xl font-bold text-green-600">{discussedTopics.length}</div>
               <div className="text-sm text-gray-600">Topics Discussed</div>
             </div>
             <div className="text-center">
               <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <Trophy className="w-8 h-8 text-orange-600" />
+                <Trophy className="w-8 h-8 text-orange-600" aria-hidden="true" />
               </div>
               <div className="text-3xl font-bold text-orange-600">{skippedTopics.length}</div>
               <div className="text-sm text-gray-600">Topics Skipped</div>
             </div>
             <div className="text-center">
               <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <Clock className="w-8 h-8 text-blue-600" />
+                <Clock className="w-8 h-8 text-blue-600" aria-hidden="true" />
               </div>
               <div className="text-3xl font-bold text-blue-600">{formatTime(totalTimeSpent)}</div>
               <div className="text-sm text-gray-600">Total Time</div>
             </div>
             <div className="text-center">
               <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <Users className="w-8 h-8 text-purple-600" />
+                <Users className="w-8 h-8 text-purple-600" aria-hidden="true" />
               </div>
               <div className="text-3xl font-bold text-purple-600">{participants.length}</div>
               <div className="text-sm text-gray-600">Participants</div>
@@ -153,7 +140,6 @@ export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
           </div>
         </div>
 
-        {/* Export Actions */}
         <div className="bg-white rounded-3xl shadow-xl p-8 mb-8 border border-gray-100">
           <h3 className="text-xl font-bold text-gray-800 mb-6 text-center">Export Summary</h3>
           <div className="flex flex-wrap gap-4 justify-center">
@@ -161,56 +147,52 @@ export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
               onClick={handleExport}
               className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
             >
-              <Download className="w-5 h-5" />
+              <Download className="w-5 h-5" aria-hidden="true" />
               Download Summary
             </button>
             <button
               onClick={handleCopy}
               className="flex items-center gap-3 px-6 py-4 bg-gray-600 text-white rounded-2xl hover:bg-gray-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
             >
-              <Copy className="w-5 h-5" />
+              <Copy className="w-5 h-5" aria-hidden="true" />
               Copy to Clipboard
             </button>
-            {isHost && (
-              <button
-                onClick={onReset}
-                className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-2xl hover:from-purple-600 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
-              >
-                <RotateCcw className="w-5 h-5" />
-                Start New Session
-              </button>
-            )}
+            <button
+              onClick={onReset}
+              className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-2xl hover:from-purple-600 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
+            >
+              <RotateCcw className="w-5 h-5" aria-hidden="true" />
+              Start New Session
+            </button>
           </div>
         </div>
 
-        {/* Participants */}
-        <div className="bg-white rounded-3xl shadow-xl p-8 mb-8 border border-gray-100">
-          <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-            <Users className="w-6 h-6 text-blue-600" />
-            Participants
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {participants.map((participant) => (
-              <div key={participant.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-                  {participant.name.charAt(0).toUpperCase()}
-                </div>
-                <div>
+        {participants.length > 0 && (
+          <div className="bg-white rounded-3xl shadow-xl p-8 mb-8 border border-gray-100">
+            <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <Users className="w-6 h-6 text-blue-600" aria-hidden="true" />
+              Participants
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {participants.map((participant) => (
+                <div key={participant.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                  <div
+                    className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold"
+                    aria-hidden="true"
+                  >
+                    {participant.name.charAt(0).toUpperCase()}
+                  </div>
                   <div className="font-medium text-gray-800">{participant.name}</div>
-                  {participant.isHost && (
-                    <div className="text-xs text-blue-600 font-medium">Host</div>
-                  )}
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Discussed Topics */}
         {discussedTopics.length > 0 && (
           <div className="bg-white rounded-3xl shadow-xl p-8 mb-8 border border-gray-100">
             <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-              <CheckCircle className="w-6 h-6 text-green-600" />
+              <CheckCircle className="w-6 h-6 text-green-600" aria-hidden="true" />
               Discussed Topics
             </h3>
             <div className="space-y-6">
@@ -220,14 +202,12 @@ export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
                     <h4 className="text-lg font-semibold text-gray-800">
                       {index + 1}. {topic.text}
                     </h4>
-                    <div className="text-sm text-gray-500 text-right">
-                      <div>{topic.votes.length} votes</div>
+                    <div className="text-sm text-gray-500 text-right shrink-0 ml-4">
+                      <div>{topic.votes.length} vote{topic.votes.length !== 1 ? 's' : ''}</div>
                       <div>{formatTime(topic.timeSpent)}</div>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-600 mb-4">
-                    by {topic.authorName}
-                  </div>
+                  <div className="text-sm text-gray-600 mb-4">by {topic.authorName}</div>
                   {topic.takeaways && (
                     <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
                       <div className="text-sm font-medium text-blue-800 mb-2">Key Takeaways:</div>
@@ -240,11 +220,10 @@ export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
           </div>
         )}
 
-        {/* Skipped Topics */}
         {skippedTopics.length > 0 && (
           <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
             <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-              <RotateCcw className="w-6 h-6 text-orange-600" />
+              <RotateCcw className="w-6 h-6 text-orange-600" aria-hidden="true" />
               Topics Not Discussed
             </h3>
             <div className="grid gap-4 md:grid-cols-2">
@@ -252,13 +231,13 @@ export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
                 <div key={topic.id} className="border-2 border-gray-100 rounded-xl p-4">
                   <div className="font-medium text-gray-800 mb-2">{topic.text}</div>
                   <div className="text-sm text-gray-600">
-                    by {topic.authorName} • {topic.votes.length} votes
+                    by {topic.authorName} · {topic.votes.length} vote{topic.votes.length !== 1 ? 's' : ''}
                   </div>
                 </div>
               ))}
             </div>
             <div className="mt-4 text-sm text-gray-500 text-center">
-              💡 Consider these topics for your next Lean Coffee session!
+              Consider these topics for your next Lean Coffee session
             </div>
           </div>
         )}

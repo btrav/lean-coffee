@@ -47,4 +47,12 @@ export const storage = {
       // Handle storage errors silently
     }
   },
+
+  clearUser: (): void => {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.USER);
+    } catch {
+      // Handle storage errors silently
+    }
+  },
 };
