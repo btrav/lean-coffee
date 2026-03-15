@@ -42,7 +42,8 @@ function reducer(state: AppState, action: Action): AppState {
 
   switch (action.type) {
     case 'LOAD':
-      return { room: action.room, currentUser: action.user };
+      // Reset the phase timer on reload so a stale timestamp doesn't show 0:00
+      return { room: { ...action.room, phaseStartTime: Date.now() }, currentUser: action.user };
 
     case 'START_SESSION': {
       const userId = generateUserId();
@@ -227,6 +228,7 @@ function reducer(state: AppState, action: Action): AppState {
 
 function App() {
   const [state, dispatch] = useReducer(reducer, { room: null, currentUser: null });
+  const [confirmingReset, setConfirmingReset] = React.useState(false);
   const { room, currentUser } = state;
 
   useEffect(() => {
@@ -245,6 +247,13 @@ function App() {
     if (currentUser) storage.setUser(currentUser);
   }, [currentUser]);
 
+  const handleReset = () => {
+    storage.clearRoom();
+    storage.clearUser();
+    setConfirmingReset(false);
+    dispatch({ type: 'RESET' });
+  };
+
   const footer = (
     <footer className="fixed bottom-0 inset-x-0 text-center py-2 text-xs text-gray-400 pointer-events-none">
       made by{' '}
@@ -257,6 +266,50 @@ function App() {
         btrav
       </a>
     </footer>
+  );
+
+  // End Session button + confirmation overlay, shown whenever a session is active
+  const endSessionControl = room && (
+    <>
+      <button
+        onClick={() => setConfirmingReset(true)}
+        className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-2 bg-white text-gray-500 text-xs font-medium rounded-xl shadow border border-gray-200 hover:border-red-300 hover:text-red-500 transition-colors"
+        aria-label="End session"
+      >
+        ✕ End Session
+      </button>
+
+      {confirmingReset && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="reset-dialog-title"
+        >
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full border border-gray-100">
+            <h2 id="reset-dialog-title" className="text-xl font-bold text-gray-800 mb-2">End this session?</h2>
+            <p className="text-gray-600 mb-6 text-sm">
+              All topics, votes, and takeaways will be permanently deleted. Export your summary first if you want to keep anything.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmingReset(false)}
+                className="flex-1 py-3 border-2 border-gray-200 text-gray-700 rounded-2xl font-medium hover:border-gray-300 transition-colors"
+                autoFocus
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReset}
+                className="flex-1 py-3 bg-red-500 text-white rounded-2xl font-medium hover:bg-red-600 transition-colors"
+              >
+                End Session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 
   if (!room || !currentUser) {
@@ -275,12 +328,6 @@ function App() {
     phaseTimeLimit: room.phaseTimeLimit,
   };
 
-  const handleReset = () => {
-    storage.clearRoom();
-    storage.clearUser();
-    dispatch({ type: 'RESET' });
-  };
-
   switch (room.phase) {
     case 'brainstorm':
       return (
@@ -294,6 +341,7 @@ function App() {
             onNextPhase={() => dispatch({ type: 'NEXT_PHASE' })}
             onAddParticipant={(name) => dispatch({ type: 'ADD_PARTICIPANT', name })}
           />
+          {endSessionControl}
           {footer}
         </>
       );
@@ -311,6 +359,7 @@ function App() {
               dispatch({ type: 'UPDATE_VOTES_PER_PERSON', votes, userId: currentUser.id })
             }
           />
+          {endSessionControl}
           {footer}
         </>
       );
@@ -332,6 +381,7 @@ function App() {
               dispatch({ type: 'UPDATE_TOPIC_TIME', topicId, timeSpent })
             }
           />
+          {endSessionControl}
           {footer}
         </>
       );
@@ -344,6 +394,7 @@ function App() {
             roomCode={room.id}
             onReset={handleReset}
           />
+          {endSessionControl}
           {footer}
         </>
       );
