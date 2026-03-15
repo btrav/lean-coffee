@@ -110,13 +110,12 @@ export const TopicCard: React.FC<TopicCardProps> = ({
             {canVote && onVote && (
               <button
                 onClick={() => onVote(topic.id)}
-                disabled={hasVoted}
                 className={`p-3 rounded-xl transition-all duration-200 ${
                   hasVoted
-                    ? 'bg-pink-100 text-pink-600 cursor-not-allowed scale-110'
+                    ? 'bg-pink-100 text-pink-600 hover:bg-pink-200 hover:scale-110 active:scale-95'
                     : 'bg-gray-100 text-gray-600 hover:bg-pink-100 hover:text-pink-600 hover:scale-110 active:scale-95'
                 }`}
-                aria-label={hasVoted ? 'Vote removed (click to unvote)' : 'Vote for this topic'}
+                aria-label={hasVoted ? 'Remove vote' : 'Vote for this topic'}
                 aria-pressed={hasVoted}
               >
                 <Heart className={`w-5 h-5 ${hasVoted ? 'fill-current' : ''}`} aria-hidden="true" />

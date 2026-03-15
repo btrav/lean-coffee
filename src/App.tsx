@@ -20,7 +20,7 @@ type Action =
   | { type: 'EDIT_TOPIC'; topicId: string; newText: string }
   | { type: 'DELETE_TOPIC'; topicId: string }
   | { type: 'TOGGLE_VOTE'; topicId: string }
-  | { type: 'UPDATE_VOTES_PER_PERSON'; votes: number }
+  | { type: 'UPDATE_VOTES_PER_PERSON'; votes: number; userId: string }
   | { type: 'NEXT_PHASE' }
   | { type: 'NEXT_TOPIC' }
   | { type: 'SKIP_TOPIC' }
@@ -31,7 +31,7 @@ type Action =
 
 const PHASES: Phase[] = ['brainstorm', 'voting', 'discussion', 'completion'];
 
-function phaseTimeLimit(phase: Phase): number | undefined {
+function defaultPhaseTimeLimit(phase: Phase): number | undefined {
   if (phase === 'brainstorm') return 600;
   if (phase === 'voting') return 300;
   return undefined;
@@ -56,7 +56,7 @@ function reducer(state: AppState, action: Action): AppState {
         votesPerPerson: 3,
         discussionTimeLimit: 300,
         phaseStartTime: Date.now(),
-        phaseTimeLimit: phaseTimeLimit('brainstorm'),
+        phaseTimeLimit: defaultPhaseTimeLimit('brainstorm'),
       };
       return { room: newRoom, currentUser: user };
     }
@@ -123,7 +123,25 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'UPDATE_VOTES_PER_PERSON': {
       if (!room) return state;
-      return { ...state, room: { ...room, votesPerPerson: action.votes } };
+      const { votes: newLimit, userId } = action;
+      // Trim the user's votes down to the new limit if they're over it
+      const votedTopicIds = room.topics
+        .filter(t => t.votes.includes(userId))
+        .map(t => t.id);
+      const excess = votedTopicIds.length - newLimit;
+      const toUnvote = new Set(excess > 0 ? votedTopicIds.slice(-excess) : []);
+      return {
+        ...state,
+        room: {
+          ...room,
+          votesPerPerson: newLimit,
+          topics: room.topics.map(t =>
+            toUnvote.has(t.id)
+              ? { ...t, votes: t.votes.filter(id => id !== userId) }
+              : t
+          ),
+        },
+      };
     }
 
     case 'NEXT_PHASE': {
@@ -138,7 +156,7 @@ function reducer(state: AppState, action: Action): AppState {
           phase: next,
           currentTopicIndex: next === 'discussion' ? 0 : room.currentTopicIndex,
           phaseStartTime: Date.now(),
-          phaseTimeLimit: phaseTimeLimit(next),
+          phaseTimeLimit: defaultPhaseTimeLimit(next),
         },
       };
     }
@@ -252,7 +270,6 @@ function App() {
 
   const commonProps = {
     topics: room.topics,
-    currentUser,
     participants: room.users,
     phaseStartTime: room.phaseStartTime,
     phaseTimeLimit: room.phaseTimeLimit,
@@ -270,6 +287,7 @@ function App() {
         <>
           <BrainstormingPhase
             {...commonProps}
+            currentUser={currentUser}
             onAddTopic={(text) => dispatch({ type: 'ADD_TOPIC', text })}
             onEditTopic={(topicId, newText) => dispatch({ type: 'EDIT_TOPIC', topicId, newText })}
             onDeleteTopic={(topicId) => dispatch({ type: 'DELETE_TOPIC', topicId })}
@@ -285,10 +303,13 @@ function App() {
         <>
           <VotingPhase
             {...commonProps}
+            currentUser={currentUser}
             votesPerPerson={room.votesPerPerson}
             onVote={(topicId) => dispatch({ type: 'TOGGLE_VOTE', topicId })}
             onNextPhase={() => dispatch({ type: 'NEXT_PHASE' })}
-            onUpdateVotesPerPerson={(votes) => dispatch({ type: 'UPDATE_VOTES_PER_PERSON', votes })}
+            onUpdateVotesPerPerson={(votes) =>
+              dispatch({ type: 'UPDATE_VOTES_PER_PERSON', votes, userId: currentUser.id })
+            }
           />
           {footer}
         </>

@@ -5,7 +5,6 @@ import { exportSummary } from '../utils/roomManager';
 
 interface CompletionPhaseProps {
   topics: Topic[];
-  currentUser: User;
   participants: User[];
   roomCode: string;
   onReset: () => void;
@@ -13,7 +12,6 @@ interface CompletionPhaseProps {
 
 export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
   topics,
-  currentUser,
   participants,
   roomCode,
   onReset,

@@ -9,7 +9,6 @@ import { PhaseTimer } from './PhaseTimer';
 
 interface DiscussionPhaseProps {
   topics: Topic[];
-  currentUser: User;
   participants: User[];
   currentTopicIndex: number;
   discussionTimeLimit: number;
@@ -24,7 +23,6 @@ interface DiscussionPhaseProps {
 
 export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
   topics,
-  currentUser,
   participants,
   currentTopicIndex,
   discussionTimeLimit,
