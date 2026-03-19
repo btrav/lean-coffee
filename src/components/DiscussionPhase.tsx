@@ -38,6 +38,8 @@ export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
   const [takeaways, setTakeaways] = useState('');
   const [showTimeUpOptions, setShowTimeUpOptions] = useState(false);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
+  // Ref mirrors the takeaways state so the auto-save interval can read the
+  // latest value without needing to re-register on every keystroke
   const takeawaysRef = useRef<string>('');
 
   const sortedTopics = [...topics]
@@ -60,6 +62,7 @@ export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
     takeawaysRef.current = takeaways;
   }, [takeaways]);
 
+  // Auto-save takeaways every 2 seconds, but only when the value has actually changed
   useEffect(() => {
     if (!currentTopic) return;
     const interval = setInterval(() => {

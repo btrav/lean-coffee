@@ -48,6 +48,9 @@ export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Confetti is created imperatively because each piece needs a unique random
+  // delay and duration — values that can't be expressed with static Tailwind classes.
+  // The cleanup removes all DOM nodes and timers if the component unmounts early.
   React.useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
@@ -80,6 +83,7 @@ export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
       `;
       document.body.appendChild(el);
       elements.push(el);
+      // Remove each piece individually once its animation finishes
       const timer = setTimeout(() => {
         if (document.body.contains(el)) document.body.removeChild(el);
       }, (delay + duration + 0.1) * 1000);

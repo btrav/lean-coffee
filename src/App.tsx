@@ -103,6 +103,7 @@ function reducer(state: AppState, action: Action): AppState {
       if (!topic) return state;
       const hasVoted = topic.votes.includes(currentUser.id);
       const userVoteCount = room.topics.filter(t => t.votes.includes(currentUser.id)).length;
+      // Silently ignore if the user is at their vote cap and trying to add a new vote
       if (!hasVoted && userVoteCount >= room.votesPerPerson) return state;
       return {
         ...state,
@@ -164,6 +165,8 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'NEXT_TOPIC': {
       if (!room) return state;
+      // Re-derive the sorted order to identify which topic is current — must match
+      // the sort used in DiscussionPhase so currentTopicIndex refers to the same topic
       const sortedTopics = [...room.topics]
         .sort((a, b) => b.votes.length - a.votes.length)
         .filter(t => t.votes.length > 0);
@@ -231,6 +234,7 @@ function App() {
   const [confirmingReset, setConfirmingReset] = React.useState(false);
   const { room, currentUser } = state;
 
+  // Restore session from localStorage on first render
   useEffect(() => {
     const savedUser = storage.getUser();
     const savedRoom = storage.getRoom();
@@ -239,6 +243,7 @@ function App() {
     }
   }, []);
 
+  // Keep localStorage in sync whenever room or user state changes
   useEffect(() => {
     if (room) storage.setRoom(room);
   }, [room]);

@@ -13,6 +13,9 @@ export const StepTransition: React.FC<StepTransitionProps> = ({
 }) => {
   const ref = useRef<HTMLDivElement>(null);
 
+  // `inert` and `aria-hidden` are set imperatively because React doesn't yet
+  // support the `inert` attribute as a JSX prop. Together they prevent keyboard
+  // focus and screen reader access to off-screen (inactive) step content.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;

@@ -26,7 +26,7 @@ export const Timer: React.FC<TimerProps> = ({
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    
+
     if (isRunning && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft(prev => {
@@ -45,6 +45,8 @@ export const Timer: React.FC<TimerProps> = ({
     }
 
     return () => clearInterval(interval);
+    // timeLeft is intentionally included so the effect re-runs (and the interval
+    // is cleared) the moment timeLeft hits 0 — prevents ticking past zero
   }, [isRunning, timeLeft, onTimeUp, onTimeUpdate]);
 
   const handleExtend = () => {
