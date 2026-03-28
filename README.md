@@ -1,5 +1,14 @@
 # lean-coffee
 
+```
+  brainstorm         vote            discuss           export
+ ────────────     ───────────     ─────────────     ──────────
+  + retros          retros ❤❤❤     ┌───────────┐    # Summary
+  + deploys         deploys ❤❤     │  retros   │
+  + onboarding      onboarding ❤   │  ⏱  4:23  │    ✓ retros
+                                   └───────────┘    ✓ deploys
+```
+
 A structured meeting facilitator for [Lean Coffee](https://leancoffee.org/) sessions. Open it on a shared screen, no sign-up required.
 
 **[Live demo →](https://btrav.github.io/lean-coffee/)**
