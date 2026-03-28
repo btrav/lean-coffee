@@ -1,6 +1,15 @@
 # lean-coffee
 
 ```
+        ) )
+       ( (
+     .-------.
+     |       |]
+     |       |
+     `-------'
+```
+
+```
   brainstorm         vote            discuss           export
  ────────────     ───────────     ─────────────     ──────────
   + retros          retros ❤❤❤     ┌───────────┐    # Summary
