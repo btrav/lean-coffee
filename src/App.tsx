@@ -2,11 +2,13 @@ import React, { useReducer, useEffect } from 'react';
 import { Room, User, Topic, Phase } from './types';
 import { storage } from './utils/storage';
 import { generateRoomCode, generateUserId } from './utils/roomManager';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { JoinRoom } from './components/JoinRoom';
 import { BrainstormingPhase } from './components/BrainstormingPhase';
 import { VotingPhase } from './components/VotingPhase';
 import { DiscussionPhase } from './components/DiscussionPhase';
 import { CompletionPhase } from './components/CompletionPhase';
+import { ThemePicker } from './components/ThemePicker';
 
 interface AppState {
   room: Room | null;
@@ -19,7 +21,8 @@ type Action =
   | { type: 'ADD_TOPIC'; text: string }
   | { type: 'EDIT_TOPIC'; topicId: string; newText: string }
   | { type: 'DELETE_TOPIC'; topicId: string }
-  | { type: 'TOGGLE_VOTE'; topicId: string }
+  | { type: 'ADD_VOTE'; topicId: string }
+  | { type: 'REMOVE_VOTE'; topicId: string }
   | { type: 'UPDATE_VOTES_PER_PERSON'; votes: number; userId: string }
   | { type: 'NEXT_PHASE' }
   | { type: 'NEXT_TOPIC' }
@@ -97,27 +100,41 @@ function reducer(state: AppState, action: Action): AppState {
       };
     }
 
-    case 'TOGGLE_VOTE': {
+    // Votes are stored as an array of user IDs with duplicates allowed,
+    // so a user can vote multiple times for the same topic
+    case 'ADD_VOTE': {
       if (!room || !currentUser) return state;
-      const topic = room.topics.find(t => t.id === action.topicId);
-      if (!topic) return state;
-      const hasVoted = topic.votes.includes(currentUser.id);
-      const userVoteCount = room.topics.filter(t => t.votes.includes(currentUser.id)).length;
-      // Silently ignore if the user is at their vote cap and trying to add a new vote
-      if (!hasVoted && userVoteCount >= room.votesPerPerson) return state;
+      const totalUserVotes = room.topics.reduce(
+        (sum, t) => sum + t.votes.filter(id => id === currentUser.id).length, 0
+      );
+      if (totalUserVotes >= room.votesPerPerson) return state;
       return {
         ...state,
         room: {
           ...room,
           topics: room.topics.map(t =>
             t.id === action.topicId
-              ? {
-                  ...t,
-                  votes: hasVoted
-                    ? t.votes.filter(id => id !== currentUser.id)
-                    : [...t.votes, currentUser.id],
-                }
+              ? { ...t, votes: [...t.votes, currentUser.id] }
               : t
+          ),
+        },
+      };
+    }
+
+    case 'REMOVE_VOTE': {
+      if (!room || !currentUser) return state;
+      const topic = room.topics.find(t => t.id === action.topicId);
+      if (!topic || !topic.votes.includes(currentUser.id)) return state;
+      // Remove only the first occurrence of the user's ID
+      const idx = topic.votes.indexOf(currentUser.id);
+      const newVotes = [...topic.votes];
+      newVotes.splice(idx, 1);
+      return {
+        ...state,
+        room: {
+          ...room,
+          topics: room.topics.map(t =>
+            t.id === action.topicId ? { ...t, votes: newVotes } : t
           ),
         },
       };
@@ -126,23 +143,28 @@ function reducer(state: AppState, action: Action): AppState {
     case 'UPDATE_VOTES_PER_PERSON': {
       if (!room) return state;
       const { votes: newLimit, userId } = action;
-      // Trim the user's votes down to the new limit if they're over it
-      const votedTopicIds = room.topics
-        .filter(t => t.votes.includes(userId))
-        .map(t => t.id);
-      const excess = votedTopicIds.length - newLimit;
-      const toUnvote = new Set(excess > 0 ? votedTopicIds.slice(-excess) : []);
+      // Count total votes by this user across all topics
+      const totalVotes = room.topics.reduce(
+        (sum, t) => sum + t.votes.filter(id => id === userId).length, 0
+      );
+      // Trim excess votes (remove from the end, one at a time across topics)
+      let toRemove = Math.max(0, totalVotes - newLimit);
+      const updatedTopics = room.topics.map(t => {
+        if (toRemove <= 0) return t;
+        const userVotesInTopic = t.votes.filter(id => id === userId).length;
+        const removals = Math.min(userVotesInTopic, toRemove);
+        if (removals === 0) return t;
+        toRemove -= removals;
+        let remaining = removals;
+        const newVotes = t.votes.filter(id => {
+          if (id === userId && remaining > 0) { remaining--; return false; }
+          return true;
+        });
+        return { ...t, votes: newVotes };
+      });
       return {
         ...state,
-        room: {
-          ...room,
-          votesPerPerson: newLimit,
-          topics: room.topics.map(t =>
-            toUnvote.has(t.id)
-              ? { ...t, votes: t.votes.filter(id => id !== userId) }
-              : t
-          ),
-        },
+        room: { ...room, votesPerPerson: newLimit, topics: updatedTopics },
       };
     }
 
@@ -229,7 +251,8 @@ function reducer(state: AppState, action: Action): AppState {
   }
 }
 
-function App() {
+function AppInner() {
+  const { theme: t } = useTheme();
   const [state, dispatch] = useReducer(reducer, { room: null, currentUser: null });
   const [confirmingReset, setConfirmingReset] = React.useState(false);
   const { room, currentUser } = state;
@@ -260,13 +283,13 @@ function App() {
   };
 
   const footer = (
-    <footer className="fixed bottom-0 inset-x-0 text-center py-2 text-xs text-gray-400 pointer-events-none">
+    <footer className={t.footer}>
       made by{' '}
       <a
         href="https://github.com/btrav"
         target="_blank"
         rel="noopener noreferrer"
-        className="underline underline-offset-2 hover:text-gray-600 transition-colors pointer-events-auto"
+        className={t.footerLink}
       >
         btrav
       </a>
@@ -278,7 +301,7 @@ function App() {
     <>
       <button
         onClick={() => setConfirmingReset(true)}
-        className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-2 bg-white text-gray-500 text-xs font-medium rounded-xl shadow border border-gray-200 hover:border-red-300 hover:text-red-500 transition-colors"
+        className={t.endSessionBtn}
         aria-label="End session"
       >
         ✕ End Session
@@ -286,27 +309,27 @@ function App() {
 
       {confirmingReset && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-6"
+          className={t.overlay}
           role="dialog"
           aria-modal="true"
           aria-labelledby="reset-dialog-title"
         >
-          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full border border-gray-100">
-            <h2 id="reset-dialog-title" className="text-xl font-bold text-gray-800 mb-2">End this session?</h2>
-            <p className="text-gray-600 mb-6 text-sm">
+          <div className={t.dialog}>
+            <h2 id="reset-dialog-title" className={`text-xl font-bold ${t.heading} mb-2`}>End this session?</h2>
+            <p className={`${t.body} mb-6 text-sm`}>
               All topics, votes, and takeaways will be permanently deleted. Export your summary first if you want to keep anything.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmingReset(false)}
-                className="flex-1 py-3 border-2 border-gray-200 text-gray-700 rounded-2xl font-medium hover:border-gray-300 transition-colors"
+                className={`flex-1 py-3 ${t.btnOutline}`}
                 autoFocus
               >
                 Cancel
               </button>
               <button
                 onClick={handleReset}
-                className="flex-1 py-3 bg-red-500 text-white rounded-2xl font-medium hover:bg-red-600 transition-colors"
+                className={`flex-1 py-3 ${t.btnDanger}`}
               >
                 End Session
               </button>
@@ -322,6 +345,7 @@ function App() {
       <>
         <JoinRoom onStart={(userName) => dispatch({ type: 'START_SESSION', userName })} />
         {footer}
+        <ThemePicker />
       </>
     );
   }
@@ -348,6 +372,7 @@ function App() {
           />
           {endSessionControl}
           {footer}
+          <ThemePicker />
         </>
       );
 
@@ -358,7 +383,8 @@ function App() {
             {...commonProps}
             currentUser={currentUser}
             votesPerPerson={room.votesPerPerson}
-            onVote={(topicId) => dispatch({ type: 'TOGGLE_VOTE', topicId })}
+            onAddVote={(topicId) => dispatch({ type: 'ADD_VOTE', topicId })}
+            onRemoveVote={(topicId) => dispatch({ type: 'REMOVE_VOTE', topicId })}
             onNextPhase={() => dispatch({ type: 'NEXT_PHASE' })}
             onUpdateVotesPerPerson={(votes) =>
               dispatch({ type: 'UPDATE_VOTES_PER_PERSON', votes, userId: currentUser.id })
@@ -366,6 +392,7 @@ function App() {
           />
           {endSessionControl}
           {footer}
+          <ThemePicker />
         </>
       );
 
@@ -388,6 +415,7 @@ function App() {
           />
           {endSessionControl}
           {footer}
+          <ThemePicker />
         </>
       );
 
@@ -401,12 +429,21 @@ function App() {
           />
           {endSessionControl}
           {footer}
+          <ThemePicker />
         </>
       );
 
     default:
       return null;
   }
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AppInner />
+    </ThemeProvider>
+  );
 }
 
 export default App;

@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle, Download, RotateCcw, Copy, Users, Clock, Trophy } from 'lucide-react';
 import { Topic, User } from '../types';
+import { useTheme } from '../context/ThemeContext';
 import { exportSummary } from '../utils/roomManager';
 
 interface CompletionPhaseProps {
@@ -16,6 +17,7 @@ export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
   roomCode,
   onReset,
 }) => {
+  const { theme: t } = useTheme();
   const discussedTopics = topics.filter(t => t.discussed);
   const skippedTopics = topics.filter(t => !t.discussed && t.votes.length > 0);
   const totalTimeSpent = discussedTopics.reduce((sum, topic) => sum + topic.timeSpent, 0);
@@ -97,71 +99,59 @@ export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
     };
   }, []);
 
+  const statItems = [
+    { icon: CheckCircle, color: t.successText, bgColor: t.successBg, value: discussedTopics.length, label: 'Topics Discussed' },
+    { icon: Trophy, color: t.warningText, bgColor: t.warningBg, value: skippedTopics.length, label: 'Topics Skipped' },
+    { icon: Clock, color: t.accent, bgColor: t.accentBg, value: formatTime(totalTimeSpent), label: 'Total Time' },
+    { icon: Users, color: t.accent, bgColor: t.accentBg, value: participants.length, label: 'Participants' },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 p-6">
+    <div className={t.page}>
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-400 to-blue-500 rounded-3xl mb-6 shadow-lg">
+          <div className={t.iconBubble}>
             <CheckCircle className="w-10 h-10 text-white" aria-hidden="true" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-800 mb-3">Session Complete!</h1>
-          <p className="text-xl text-gray-600">Great discussion, everyone!</p>
+          <h1 className={`text-4xl font-bold ${t.heading} mb-3`}>Session Complete!</h1>
+          <p className={`text-xl ${t.body}`}>Great discussion, everyone!</p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl p-8 mb-8 border border-gray-100">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Session Summary</h2>
+        <div className={`${t.card} mb-8`}>
+          <h2 className={`text-2xl font-bold ${t.heading} mb-6 text-center`}>Session Summary</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <CheckCircle className="w-8 h-8 text-green-600" aria-hidden="true" />
+            {statItems.map((item) => (
+              <div key={item.label} className="text-center">
+                <div className={`w-14 h-14 ${item.bgColor} rounded-xl flex items-center justify-center mx-auto mb-3`}>
+                  <item.icon className={`w-7 h-7 ${item.color}`} aria-hidden="true" />
+                </div>
+                <div className={`text-3xl font-bold ${item.color}`}>{item.value}</div>
+                <div className={`text-sm ${t.body}`}>{item.label}</div>
               </div>
-              <div className="text-3xl font-bold text-green-600">{discussedTopics.length}</div>
-              <div className="text-sm text-gray-600">Topics Discussed</div>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <Trophy className="w-8 h-8 text-orange-600" aria-hidden="true" />
-              </div>
-              <div className="text-3xl font-bold text-orange-600">{skippedTopics.length}</div>
-              <div className="text-sm text-gray-600">Topics Skipped</div>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <Clock className="w-8 h-8 text-blue-600" aria-hidden="true" />
-              </div>
-              <div className="text-3xl font-bold text-blue-600">{formatTime(totalTimeSpent)}</div>
-              <div className="text-sm text-gray-600">Total Time</div>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <Users className="w-8 h-8 text-purple-600" aria-hidden="true" />
-              </div>
-              <div className="text-3xl font-bold text-purple-600">{participants.length}</div>
-              <div className="text-sm text-gray-600">Participants</div>
-            </div>
+            ))}
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl p-8 mb-8 border border-gray-100">
-          <h3 className="text-xl font-bold text-gray-800 mb-6 text-center">Export Summary</h3>
+        <div className={`${t.card} mb-8`}>
+          <h3 className={`text-xl font-bold ${t.heading} mb-6 text-center`}>Export Summary</h3>
           <div className="flex flex-wrap gap-4 justify-center">
             <button
               onClick={handleExport}
-              className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
+              className={`flex items-center gap-3 px-6 py-4 ${t.btnPrimary}`}
             >
               <Download className="w-5 h-5" aria-hidden="true" />
               Download Summary
             </button>
             <button
               onClick={handleCopy}
-              className="flex items-center gap-3 px-6 py-4 bg-gray-600 text-white rounded-2xl hover:bg-gray-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
+              className={`flex items-center gap-3 px-6 py-4 ${t.btnSecondary}`}
             >
               <Copy className="w-5 h-5" aria-hidden="true" />
               Copy to Clipboard
             </button>
             <button
               onClick={onReset}
-              className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-2xl hover:from-purple-600 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
+              className={`flex items-center gap-3 px-6 py-4 ${t.btnConfirm}`}
             >
               <RotateCcw className="w-5 h-5" aria-hidden="true" />
               Start New Session
@@ -170,21 +160,18 @@ export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
         </div>
 
         {participants.length > 0 && (
-          <div className="bg-white rounded-3xl shadow-xl p-8 mb-8 border border-gray-100">
-            <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-              <Users className="w-6 h-6 text-blue-600" aria-hidden="true" />
+          <div className={`${t.card} mb-8`}>
+            <h3 className={`text-xl font-bold ${t.heading} mb-6 flex items-center gap-2`}>
+              <Users className={`w-6 h-6 ${t.accent}`} aria-hidden="true" />
               Participants
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {participants.map((participant) => (
-                <div key={participant.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                  <div
-                    className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold"
-                    aria-hidden="true"
-                  >
+                <div key={participant.id} className={`flex items-center gap-3 ${t.listItem}`}>
+                  <div className={t.avatar} aria-hidden="true">
                     {participant.name.charAt(0).toUpperCase()}
                   </div>
-                  <div className="font-medium text-gray-800">{participant.name}</div>
+                  <div className={`font-medium ${t.heading}`}>{participant.name}</div>
                 </div>
               ))}
             </div>
@@ -192,28 +179,28 @@ export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
         )}
 
         {discussedTopics.length > 0 && (
-          <div className="bg-white rounded-3xl shadow-xl p-8 mb-8 border border-gray-100">
-            <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-              <CheckCircle className="w-6 h-6 text-green-600" aria-hidden="true" />
+          <div className={`${t.card} mb-8`}>
+            <h3 className={`text-xl font-bold ${t.heading} mb-6 flex items-center gap-2`}>
+              <CheckCircle className={`w-6 h-6 ${t.successText}`} aria-hidden="true" />
               Discussed Topics
             </h3>
             <div className="space-y-6">
               {discussedTopics.map((topic, index) => (
-                <div key={topic.id} className="border-2 border-gray-100 rounded-2xl p-6">
+                <div key={topic.id} className={`${t.listItem} !p-6 border border-gray-100`}>
                   <div className="flex items-start justify-between mb-4">
-                    <h4 className="text-lg font-semibold text-gray-800">
+                    <h4 className={`text-lg font-semibold ${t.heading}`}>
                       {index + 1}. {topic.text}
                     </h4>
-                    <div className="text-sm text-gray-500 text-right shrink-0 ml-4">
+                    <div className={`text-sm ${t.muted} text-right shrink-0 ml-4`}>
                       <div>{topic.votes.length} vote{topic.votes.length !== 1 ? 's' : ''}</div>
                       <div>{formatTime(topic.timeSpent)}</div>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-600 mb-4">by {topic.authorName}</div>
+                  <div className={`text-sm ${t.body} mb-4`}>by {topic.authorName}</div>
                   {topic.takeaways && (
-                    <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-                      <div className="text-sm font-medium text-blue-800 mb-2">Key Takeaways:</div>
-                      <div className="text-sm text-blue-700 whitespace-pre-wrap">{topic.takeaways}</div>
+                    <div className={t.infoBox}>
+                      <div className={`text-sm font-medium ${t.accent} mb-2`}>Key Takeaways:</div>
+                      <div className={`text-sm ${t.body} whitespace-pre-wrap`}>{topic.takeaways}</div>
                     </div>
                   )}
                 </div>
@@ -223,22 +210,22 @@ export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
         )}
 
         {skippedTopics.length > 0 && (
-          <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
-            <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-              <RotateCcw className="w-6 h-6 text-orange-600" aria-hidden="true" />
+          <div className={t.card}>
+            <h3 className={`text-xl font-bold ${t.heading} mb-6 flex items-center gap-2`}>
+              <RotateCcw className={`w-6 h-6 ${t.warningText}`} aria-hidden="true" />
               Topics Not Discussed
             </h3>
             <div className="grid gap-4 md:grid-cols-2">
               {skippedTopics.map((topic) => (
-                <div key={topic.id} className="border-2 border-gray-100 rounded-xl p-4">
-                  <div className="font-medium text-gray-800 mb-2">{topic.text}</div>
-                  <div className="text-sm text-gray-600">
+                <div key={topic.id} className={t.listItem}>
+                  <div className={`font-medium ${t.heading} mb-2`}>{topic.text}</div>
+                  <div className={`text-sm ${t.body}`}>
                     by {topic.authorName} · {topic.votes.length} vote{topic.votes.length !== 1 ? 's' : ''}
                   </div>
                 </div>
               ))}
             </div>
-            <div className="mt-4 text-sm text-gray-500 text-center">
+            <div className={`mt-4 text-sm ${t.muted} text-center`}>
               Consider these topics for your next Lean Coffee session
             </div>
           </div>

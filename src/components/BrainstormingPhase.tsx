@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Lightbulb, ArrowRight, UserPlus, Users, X } from 'lucide-react';
 import { Topic, User } from '../types';
+import { useTheme } from '../context/ThemeContext';
 import { TopicCard } from './TopicCard';
 import { PhaseTimer } from './PhaseTimer';
 
@@ -29,6 +30,7 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
   phaseStartTime,
   phaseTimeLimit,
 }) => {
+  const { theme: t } = useTheme();
   const [newTopic, setNewTopic] = useState('');
   const [showAnimation, setShowAnimation] = useState(false);
   const [confirmingAdvance, setConfirmingAdvance] = useState(false);
@@ -59,7 +61,7 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6">
+    <div className={t.page}>
       <PhaseTimer
         phaseStartTime={phaseStartTime}
         phaseTimeLimit={phaseTimeLimit}
@@ -68,15 +70,15 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
 
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-3xl mb-4 shadow-lg">
+          <div className={t.iconBubble}>
             <Lightbulb className="w-8 h-8 text-white" aria-hidden="true" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Brainstorming Phase</h1>
-          <p className="text-xl text-gray-600">What would you like to discuss?</p>
+          <h1 className={`text-3xl font-bold ${t.heading} mb-2`}>Brainstorming Phase</h1>
+          <p className={`text-xl ${t.body}`}>What would you like to discuss?</p>
         </div>
 
         {/* Add topic form */}
-        <div className="bg-white rounded-3xl shadow-xl p-8 mb-6 border border-gray-100">
+        <div className={`${t.card} mb-6`}>
           <div className="space-y-4">
             <label htmlFor="new-topic" className="sr-only">New topic</label>
             <textarea
@@ -85,18 +87,20 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
               onChange={(e) => setNewTopic(e.target.value)}
               onKeyDown={handleTopicKeyDown}
               placeholder="Type a topic and press Enter to add it... (Shift+Enter for a new line)"
-              className="w-full px-6 py-4 text-lg border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 resize-none h-24"
+              className={`${t.textarea} h-24`}
               maxLength={200}
               autoFocus
             />
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-400" aria-live="polite">
+              <span className={`text-sm ${t.muted}`} aria-live="polite">
                 {newTopic.length}/200 · Enter to add, Shift+Enter for new line
               </span>
               <button
                 onClick={submitTopic}
                 disabled={!newTopic.trim()}
-                className="bg-gradient-to-r from-green-500 to-blue-600 text-white py-3 px-6 rounded-2xl font-semibold hover:from-green-600 hover:to-blue-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] disabled:transform-none flex items-center gap-2"
+                className={`py-3 px-6 flex items-center gap-2 ${
+                  newTopic.trim() ? t.btnPrimary : t.btnPrimaryDisabled
+                }`}
               >
                 <Plus className="w-5 h-5" aria-hidden="true" />
                 Add Topic
@@ -106,7 +110,7 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
 
           {showAnimation && (
             <div className="mt-3 text-center" role="status" aria-live="polite">
-              <span className="inline-flex items-center gap-2 text-green-600 font-medium animate-bounce">
+              <span className={`inline-flex items-center gap-2 ${t.successText} font-medium animate-bounce`}>
                 ✨ Topic added!
               </span>
             </div>
@@ -133,15 +137,15 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
         )}
 
         {/* Participants */}
-        <div className="bg-white rounded-3xl shadow-xl p-6 mb-6 border border-gray-100">
-          <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5 text-blue-600" aria-hidden="true" />
+        <div className={`${t.card} mb-6`}>
+          <h3 className={`font-semibold ${t.heading} mb-4 flex items-center gap-2`}>
+            <Users className={`w-5 h-5 ${t.accent}`} aria-hidden="true" />
             Participants ({participants.length})
           </h3>
           <div className="flex flex-wrap gap-2 mb-4">
             {participants.map((p) => (
-              <span key={p.id} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">
-                <span className="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold" aria-hidden="true">
+              <span key={p.id} className={t.participantBadge}>
+                <span className={t.participantBadgeAvatar} aria-hidden="true">
                   {p.name.charAt(0).toUpperCase()}
                 </span>
                 {p.name}
@@ -156,13 +160,15 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
               value={newParticipantName}
               onChange={(e) => setNewParticipantName(e.target.value)}
               placeholder="Add a participant..."
-              className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+              className={`flex-1 ${t.input}`}
               maxLength={50}
             />
             <button
               type="submit"
               disabled={!newParticipantName.trim()}
-              className="px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-1 font-medium"
+              className={`px-4 py-2 flex items-center gap-1 ${
+                newParticipantName.trim() ? t.btnSmall : t.btnPrimaryDisabled
+              }`}
               aria-label="Add participant"
             >
               <UserPlus className="w-4 h-4" aria-hidden="true" />
@@ -173,16 +179,16 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
 
         {/* Start voting */}
         {topics.length > 0 && (
-          <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+          <div className={t.card}>
             {!confirmingAdvance ? (
               <div className="text-center">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Ready to vote?</h3>
-                <p className="text-gray-600 mb-6">
+                <h3 className={`text-xl font-bold ${t.heading} mb-2`}>Ready to vote?</h3>
+                <p className={`${t.body} mb-6`}>
                   {topics.length} topic{topics.length !== 1 ? 's' : ''} ready for voting
                 </p>
                 <button
                   onClick={() => setConfirmingAdvance(true)}
-                  className="bg-gradient-to-r from-purple-500 to-pink-600 text-white py-4 px-8 rounded-2xl font-semibold text-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] flex items-center gap-2 mx-auto"
+                  className={`py-4 px-8 text-lg flex items-center gap-2 mx-auto ${t.btnPrimary}`}
                 >
                   Start Voting Phase
                   <ArrowRight className="w-5 h-5" aria-hidden="true" />
@@ -190,19 +196,19 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
               </div>
             ) : (
               <div className="text-center">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Start voting now?</h3>
-                <p className="text-gray-600 mb-6">You won't be able to add or remove topics after this.</p>
+                <h3 className={`text-xl font-bold ${t.heading} mb-2`}>Start voting now?</h3>
+                <p className={`${t.body} mb-6`}>You won't be able to add or remove topics after this.</p>
                 <div className="flex gap-4 justify-center">
                   <button
                     onClick={() => setConfirmingAdvance(false)}
-                    className="flex items-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-2xl hover:border-gray-400 transition-colors font-medium"
+                    className={`flex items-center gap-2 px-6 py-3 ${t.btnOutline}`}
                   >
                     <X className="w-4 h-4" aria-hidden="true" />
                     Cancel
                   </button>
                   <button
                     onClick={onNextPhase}
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-2xl hover:from-purple-600 hover:to-pink-700 transition-all duration-200 shadow-lg font-semibold"
+                    className={`flex items-center gap-2 px-6 py-3 ${t.btnConfirm}`}
                   >
                     Yes, start voting
                     <ArrowRight className="w-4 h-4" aria-hidden="true" />

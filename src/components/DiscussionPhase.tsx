@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, ArrowRight, SkipForward, Clock, CheckCircle, Edit3 } from 'lucide-react';
 import { Topic, User } from '../types';
+import { useTheme } from '../context/ThemeContext';
 import { TopicCard } from './TopicCard';
 import { Timer } from './Timer';
 import { StepTransition } from './StepTransition';
@@ -34,6 +35,7 @@ export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
   phaseStartTime,
   phaseTimeLimit,
 }) => {
+  const { theme: t } = useTheme();
   const [step, setStep] = useState(0);
   const [takeaways, setTakeaways] = useState('');
   const [showTimeUpOptions, setShowTimeUpOptions] = useState(false);
@@ -116,18 +118,18 @@ export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
 
   if (!currentTopic) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-3xl shadow-xl p-12 text-center border border-gray-100">
-          <CheckCircle className="w-20 h-20 text-green-600 mx-auto mb-6" aria-hidden="true" />
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">All topics discussed!</h2>
-          <p className="text-xl text-gray-600">Ready to wrap up the session.</p>
+      <div className={`${t.page} flex items-center justify-center`}>
+        <div className={`${t.card} text-center`}>
+          <CheckCircle className={`w-20 h-20 ${t.successText} mx-auto mb-6`} aria-hidden="true" />
+          <h2 className={`text-3xl font-bold ${t.heading} mb-4`}>All topics discussed!</h2>
+          <p className={`text-xl ${t.body}`}>Ready to wrap up the session.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 p-6">
+    <div className={t.page}>
       <PhaseTimer
         phaseStartTime={phaseStartTime}
         phaseTimeLimit={phaseTimeLimit}
@@ -136,14 +138,14 @@ export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
 
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-400 to-blue-500 rounded-3xl mb-4 shadow-lg">
+          <div className={t.iconBubble}>
             <MessageSquare className="w-8 h-8 text-white" aria-hidden="true" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Discussion Phase</h1>
-          <p className="text-xl text-gray-600">
+          <h1 className={`text-3xl font-bold ${t.heading} mb-2`}>Discussion Phase</h1>
+          <p className={`text-xl ${t.body}`}>
             Topic {currentTopicIndex + 1} of {sortedTopics.length}
           </p>
-          <p className="text-sm text-gray-500 mt-2">{participants.length} participant{participants.length !== 1 ? 's' : ''}</p>
+          <p className={`text-sm ${t.muted} mt-2`}>{participants.length} participant{participants.length !== 1 ? 's' : ''}</p>
         </div>
 
         <ProgressIndicator
@@ -152,18 +154,18 @@ export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
           stepLabels={stepLabels}
         />
 
-        <div className="bg-white rounded-3xl shadow-xl p-6 mb-8 border border-gray-100" role="progressbar" aria-valuenow={currentTopicIndex + 1} aria-valuemin={1} aria-valuemax={sortedTopics.length}>
+        <div className={`${t.card} mb-8`} role="progressbar" aria-valuenow={currentTopicIndex + 1} aria-valuemin={1} aria-valuemax={sortedTopics.length}>
           <div className="flex items-center justify-between mb-4">
-            <div className="text-sm text-gray-600">
+            <div className={`text-sm ${t.body}`}>
               {discussedCount} discussed · {sortedTopics.length - currentTopicIndex - 1} remaining
             </div>
-            <div className="text-sm text-gray-600">
+            <div className={`text-sm ${t.body}`}>
               {Math.round(((currentTopicIndex + 1) / sortedTopics.length) * 100)}% complete
             </div>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
+          <div className={`${t.progressTrack} h-3`}>
             <div
-              className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-500"
+              className={`${t.progressFill} h-3`}
               style={{ width: `${((currentTopicIndex + 1) / sortedTopics.length) * 100}%` }}
             />
           </div>
@@ -180,12 +182,12 @@ export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
               />
 
               {!showTimeUpOptions && (
-                <div className="bg-white rounded-3xl shadow-xl p-6 border border-gray-100">
-                  <h3 className="font-semibold text-gray-800 mb-4">Discussion Controls</h3>
+                <div className={t.card}>
+                  <h3 className={`font-semibold ${t.heading} mb-4`}>Discussion Controls</h3>
                   <div className="space-y-3">
                     <button
                       onClick={() => setStep(1)}
-                      className="w-full px-6 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 font-semibold"
+                      className={`w-full px-6 py-4 flex items-center justify-center gap-2 ${t.btnPrimary}`}
                     >
                       <Edit3 className="w-5 h-5" aria-hidden="true" />
                       Add Key Takeaways
@@ -193,14 +195,14 @@ export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={handleMoveOn}
-                        className="px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors flex items-center justify-center gap-2 font-medium"
+                        className={`px-4 py-3 flex items-center justify-center gap-2 ${t.btnConfirm}`}
                       >
                         <CheckCircle className="w-4 h-4" aria-hidden="true" />
                         Complete
                       </button>
                       <button
                         onClick={handleSkip}
-                        className="px-4 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 font-medium"
+                        className={`px-4 py-3 flex items-center justify-center gap-2 ${t.btnSecondary}`}
                       >
                         <SkipForward className="w-4 h-4" aria-hidden="true" />
                         Skip
@@ -211,21 +213,21 @@ export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
               )}
 
               {showTimeUpOptions && (
-                <div className="bg-white rounded-3xl shadow-xl p-6 border-2 border-orange-300" role="alert">
-                  <h3 className="font-semibold text-orange-800 mb-4 flex items-center gap-2">
+                <div className={t.cardAlert} role="alert">
+                  <h3 className={`font-semibold ${t.warningText} mb-4 flex items-center gap-2`}>
                     <Clock className="w-5 h-5" aria-hidden="true" />
                     Time's Up! What would you like to do?
                   </h3>
                   <div className="space-y-3">
                     <button
                       onClick={handleContinueDiscussion}
-                      className="w-full px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
+                      className={`w-full px-4 py-3 ${t.btnSecondary}`}
                     >
                       Continue Discussion
                     </button>
                     <button
                       onClick={handleMoveOn}
-                      className="w-full px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium"
+                      className={`w-full px-4 py-3 ${t.btnConfirm}`}
                     >
                       {isLastTopic ? 'Complete Session' : 'Move to Next Topic'}
                     </button>
@@ -249,15 +251,15 @@ export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
 
         <StepTransition isActive={step === 1}>
           <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+            <div className={t.card}>
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Key Takeaways & Next Steps</h2>
-                <p className="text-gray-600">What are the important outcomes from this discussion?</p>
+                <h2 className={`text-2xl font-bold ${t.heading} mb-2`}>Key Takeaways & Next Steps</h2>
+                <p className={t.body}>What are the important outcomes from this discussion?</p>
               </div>
 
               <div className="space-y-6">
                 <div>
-                  <label htmlFor="takeaways-input" className="block text-sm font-medium text-gray-700 mb-3">
+                  <label htmlFor="takeaways-input" className={`block text-sm font-medium ${t.heading} mb-3`}>
                     Topic: {currentTopic.text}
                   </label>
                   <textarea
@@ -268,9 +270,9 @@ export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
                       takeawaysRef.current = e.target.value;
                     }}
                     placeholder="• Key insights discovered&#10;• Decisions made&#10;• Action items and next steps"
-                    className="w-full h-48 p-6 text-lg border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 resize-none"
+                    className={`${t.textarea} h-48`}
                   />
-                  <div className="text-sm text-gray-500 mt-2">
+                  <div className={`text-sm ${t.muted} mt-2`}>
                     Auto-saved every 2 seconds
                   </div>
                 </div>
@@ -278,13 +280,13 @@ export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
                 <div className="flex gap-4">
                   <button
                     onClick={() => setStep(0)}
-                    className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:border-gray-400 transition-colors font-medium"
+                    className={`flex-1 px-6 py-3 ${t.btnOutline}`}
                   >
                     ← Back to Discussion
                   </button>
                   <button
                     onClick={handleMoveOn}
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-xl hover:from-green-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium flex items-center justify-center gap-2"
+                    className={`flex-1 px-6 py-3 flex items-center justify-center gap-2 ${t.btnConfirm}`}
                   >
                     {isLastTopic ? 'Complete Session' : 'Next Topic'}
                     <ArrowRight className="w-4 h-4" aria-hidden="true" />

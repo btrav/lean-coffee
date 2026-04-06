@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 interface PhaseTimerProps {
   phaseStartTime?: number;
@@ -14,6 +15,7 @@ export const PhaseTimer: React.FC<PhaseTimerProps> = ({
   phaseName,
   onTimeUp,
 }) => {
+  const { theme: t } = useTheme();
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   useEffect(() => {
@@ -40,41 +42,34 @@ export const PhaseTimer: React.FC<PhaseTimerProps> = ({
   const isLowTime = timeLeft <= 60 && timeLeft > 0;
   const isTimeUp = timeLeft === 0;
 
+  const iconBg = isTimeUp ? t.dangerBg : isLowTime ? t.warningBg : t.accentBg;
+  const iconColor = isTimeUp ? t.dangerText : isLowTime ? t.warningText : t.accent;
+  const timerColor = isTimeUp ? t.dangerText : isLowTime ? t.warningText : t.heading;
+  const barColor = isTimeUp ? 'bg-red-500' : isLowTime ? 'bg-orange-500' : t.progressFill.split(' ')[0];
+
   return (
-    <div
-      className="fixed top-4 right-4 bg-white rounded-2xl shadow-lg p-4 border border-gray-100 z-50"
-      role="timer"
-      aria-label={`${phaseName} phase: ${formatTime(timeLeft)} remaining`}
-    >
+    <div className={t.phaseTimer} role="timer" aria-label={`${phaseName} phase: ${formatTime(timeLeft)} remaining`}>
       <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-          isTimeUp ? 'bg-red-100' : isLowTime ? 'bg-orange-100' : 'bg-blue-100'
-        }`}>
-          <Clock className={`w-5 h-5 ${
-            isTimeUp ? 'text-red-600' : isLowTime ? 'text-orange-600' : 'text-blue-600'
-          }`} aria-hidden="true" />
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${iconBg}`}>
+          <Clock className={`w-5 h-5 ${iconColor}`} aria-hidden="true" />
         </div>
         <div>
-          <div className="text-sm text-gray-600">{phaseName}</div>
-          <div className={`text-lg font-bold ${
-            isTimeUp ? 'text-red-600' : isLowTime ? 'text-orange-600' : 'text-gray-800'
-          }`}>
+          <div className={`text-sm ${t.body}`}>{phaseName}</div>
+          <div className={`text-lg font-bold ${timerColor}`}>
             {formatTime(timeLeft)}
           </div>
         </div>
       </div>
 
-      <div className="w-full bg-gray-200 rounded-full h-1 mt-3">
+      <div className={`${t.progressTrack} h-1 mt-3`}>
         <div
-          className={`h-1 rounded-full transition-all duration-1000 ${
-            isTimeUp ? 'bg-red-500' : isLowTime ? 'bg-orange-500' : 'bg-blue-500'
-          }`}
+          className={`h-1 rounded-full transition-all duration-1000 ${barColor}`}
           style={{ width: `${Math.min(progress, 100)}%` }}
         />
       </div>
 
       {isTimeUp && (
-        <div className="mt-2 text-xs text-red-600 font-medium text-center animate-pulse">
+        <div className={`mt-2 text-xs ${t.dangerText} font-medium text-center animate-pulse`}>
           Time's up!
         </div>
       )}
