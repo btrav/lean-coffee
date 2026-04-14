@@ -1,9 +1,10 @@
 import React, { useReducer, useEffect } from 'react';
-import { Room, User, Topic, Phase } from './types';
+import { Room, User, Topic, Phase, totalVotesForTopic } from './types';
 import { storage } from './utils/storage';
 import { generateRoomCode, generateUserId } from './utils/roomManager';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { JoinRoom } from './components/JoinRoom';
+import { SetupPhase } from './components/SetupPhase';
 import { BrainstormingPhase } from './components/BrainstormingPhase';
 import { VotingPhase } from './components/VotingPhase';
 import { DiscussionPhase } from './components/DiscussionPhase';
@@ -30,9 +31,10 @@ type Action =
   | { type: 'UPDATE_TAKEAWAYS'; topicId: string; takeaways: string }
   | { type: 'UPDATE_TOPIC_TIME'; topicId: string; timeSpent: number }
   | { type: 'ADD_PARTICIPANT'; name: string }
+  | { type: 'REMOVE_PARTICIPANT'; userId: string }
   | { type: 'RESET' };
 
-const PHASES: Phase[] = ['brainstorm', 'voting', 'discussion', 'completion'];
+const PHASES: Phase[] = ['setup', 'brainstorm', 'voting', 'discussion', 'completion'];
 
 function defaultPhaseTimeLimit(phase: Phase): number | undefined {
   if (phase === 'brainstorm') return 600;
@@ -55,12 +57,12 @@ function reducer(state: AppState, action: Action): AppState {
         id: generateRoomCode(),
         topics: [],
         users: [user],
-        phase: 'brainstorm',
+        phase: 'setup',
         currentTopicIndex: 0,
         votesPerPerson: 3,
         discussionTimeLimit: 300,
         phaseStartTime: Date.now(),
-        phaseTimeLimit: defaultPhaseTimeLimit('brainstorm'),
+        phaseTimeLimit: undefined,
       };
       return { room: newRoom, currentUser: user };
     }
@@ -72,7 +74,7 @@ function reducer(state: AppState, action: Action): AppState {
         text: action.text,
         authorId: currentUser.id,
         authorName: currentUser.name,
-        votes: [],
+        votes: {},
         discussed: false,
         timeSpent: 0,
       };
@@ -100,12 +102,10 @@ function reducer(state: AppState, action: Action): AppState {
       };
     }
 
-    // Votes are stored as an array of user IDs with duplicates allowed,
-    // so a user can vote multiple times for the same topic
     case 'ADD_VOTE': {
       if (!room || !currentUser) return state;
       const totalUserVotes = room.topics.reduce(
-        (sum, t) => sum + t.votes.filter(id => id === currentUser.id).length, 0
+        (sum, t) => sum + (t.votes[currentUser.id] || 0), 0
       );
       if (totalUserVotes >= room.votesPerPerson) return state;
       return {
@@ -114,7 +114,7 @@ function reducer(state: AppState, action: Action): AppState {
           ...room,
           topics: room.topics.map(t =>
             t.id === action.topicId
-              ? { ...t, votes: [...t.votes, currentUser.id] }
+              ? { ...t, votes: { ...t.votes, [currentUser.id]: (t.votes[currentUser.id] || 0) + 1 } }
               : t
           ),
         },
@@ -124,17 +124,20 @@ function reducer(state: AppState, action: Action): AppState {
     case 'REMOVE_VOTE': {
       if (!room || !currentUser) return state;
       const topic = room.topics.find(t => t.id === action.topicId);
-      if (!topic || !topic.votes.includes(currentUser.id)) return state;
-      // Remove only the first occurrence of the user's ID
-      const idx = topic.votes.indexOf(currentUser.id);
-      const newVotes = [...topic.votes];
-      newVotes.splice(idx, 1);
+      if (!topic || !topic.votes[currentUser.id]) return state;
+      const count = topic.votes[currentUser.id] - 1;
+      const updatedVotes = { ...topic.votes };
+      if (count <= 0) {
+        delete updatedVotes[currentUser.id];
+      } else {
+        updatedVotes[currentUser.id] = count;
+      }
       return {
         ...state,
         room: {
           ...room,
           topics: room.topics.map(t =>
-            t.id === action.topicId ? { ...t, votes: newVotes } : t
+            t.id === action.topicId ? { ...t, votes: updatedVotes } : t
           ),
         },
       };
@@ -143,23 +146,23 @@ function reducer(state: AppState, action: Action): AppState {
     case 'UPDATE_VOTES_PER_PERSON': {
       if (!room) return state;
       const { votes: newLimit, userId } = action;
-      // Count total votes by this user across all topics
       const totalVotes = room.topics.reduce(
-        (sum, t) => sum + t.votes.filter(id => id === userId).length, 0
+        (sum, t) => sum + (t.votes[userId] || 0), 0
       );
-      // Trim excess votes (remove from the end, one at a time across topics)
       let toRemove = Math.max(0, totalVotes - newLimit);
       const updatedTopics = room.topics.map(t => {
         if (toRemove <= 0) return t;
-        const userVotesInTopic = t.votes.filter(id => id === userId).length;
+        const userVotesInTopic = t.votes[userId] || 0;
         const removals = Math.min(userVotesInTopic, toRemove);
         if (removals === 0) return t;
         toRemove -= removals;
-        let remaining = removals;
-        const newVotes = t.votes.filter(id => {
-          if (id === userId && remaining > 0) { remaining--; return false; }
-          return true;
-        });
+        const newCount = userVotesInTopic - removals;
+        const newVotes = { ...t.votes };
+        if (newCount <= 0) {
+          delete newVotes[userId];
+        } else {
+          newVotes[userId] = newCount;
+        }
         return { ...t, votes: newVotes };
       });
       return {
@@ -190,8 +193,8 @@ function reducer(state: AppState, action: Action): AppState {
       // Re-derive the sorted order to identify which topic is current — must match
       // the sort used in DiscussionPhase so currentTopicIndex refers to the same topic
       const sortedTopics = [...room.topics]
-        .sort((a, b) => b.votes.length - a.votes.length)
-        .filter(t => t.votes.length > 0);
+        .sort((a, b) => totalVotesForTopic(b) - totalVotesForTopic(a))
+        .filter(t => totalVotesForTopic(t) > 0);
       const currentTopic = sortedTopics[room.currentTopicIndex];
       if (!currentTopic) return state;
       return {
@@ -241,6 +244,11 @@ function reducer(state: AppState, action: Action): AppState {
       if (!room) return state;
       const participant: User = { id: generateUserId(), name: action.name };
       return { ...state, room: { ...room, users: [...room.users, participant] } };
+    }
+
+    case 'REMOVE_PARTICIPANT': {
+      if (!room) return state;
+      return { ...state, room: { ...room, users: room.users.filter(u => u.id !== action.userId) } };
     }
 
     case 'RESET':
@@ -358,6 +366,22 @@ function AppInner() {
   };
 
   switch (room.phase) {
+    case 'setup':
+      return (
+        <>
+          <SetupPhase
+            currentUser={currentUser}
+            participants={room.users}
+            onAddParticipant={(name) => dispatch({ type: 'ADD_PARTICIPANT', name })}
+            onRemoveParticipant={(userId) => dispatch({ type: 'REMOVE_PARTICIPANT', userId })}
+            onNextPhase={() => dispatch({ type: 'NEXT_PHASE' })}
+          />
+          {endSessionControl}
+          {footer}
+          <ThemePicker />
+        </>
+      );
+
     case 'brainstorm':
       return (
         <>
@@ -368,7 +392,6 @@ function AppInner() {
             onEditTopic={(topicId, newText) => dispatch({ type: 'EDIT_TOPIC', topicId, newText })}
             onDeleteTopic={(topicId) => dispatch({ type: 'DELETE_TOPIC', topicId })}
             onNextPhase={() => dispatch({ type: 'NEXT_PHASE' })}
-            onAddParticipant={(name) => dispatch({ type: 'ADD_PARTICIPANT', name })}
           />
           {endSessionControl}
           {footer}

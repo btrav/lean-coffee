@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Heart, ArrowRight, Trophy, X } from 'lucide-react';
-import { Topic, User } from '../types';
+import { Topic, User, totalVotesForTopic } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { TopicCard } from './TopicCard';
 import { StepTransition } from './StepTransition';
@@ -37,15 +37,15 @@ export const VotingPhase: React.FC<VotingPhaseProps> = ({
   const [confirmingAdvance, setConfirmingAdvance] = useState(false);
 
   const userVotes = topics.reduce(
-    (sum, topic) => sum + topic.votes.filter(id => id === currentUser.id).length, 0
+    (sum, topic) => sum + (topic.votes[currentUser.id] || 0), 0
   );
   const canVote = userVotes < votesPerPerson;
-  const sortedTopics = [...topics].sort((a, b) => b.votes.length - a.votes.length);
-  const totalVotes = topics.reduce((sum, topic) => sum + topic.votes.length, 0);
+  const sortedTopics = [...topics].sort((a, b) => totalVotesForTopic(b) - totalVotesForTopic(a));
+  const totalVotes = topics.reduce((sum, topic) => sum + totalVotesForTopic(topic), 0);
 
   const userVotesForTopic = (topicId: string) => {
     const topic = topics.find(t => t.id === topicId);
-    return topic ? topic.votes.filter(id => id === currentUser.id).length : 0;
+    return topic ? (topic.votes[currentUser.id] || 0) : 0;
   };
 
   const stepLabels = ['Vote on Topics', 'Review Results'];
@@ -167,7 +167,7 @@ export const VotingPhase: React.FC<VotingPhaseProps> = ({
               </button>
             </div>
 
-            {sortedTopics.filter(t => t.votes.length > 0).length > 0 ? (
+            {sortedTopics.filter(t => totalVotesForTopic(t) > 0).length > 0 ? (
               <>
                 <div className={`${t.card} mb-6`}>
                   <div className="flex items-center gap-3 mb-4">
@@ -175,7 +175,7 @@ export const VotingPhase: React.FC<VotingPhaseProps> = ({
                     <h3 className={`text-xl font-bold ${t.heading}`}>Voting Results</h3>
                   </div>
                   <div className="space-y-3" role="list">
-                    {sortedTopics.filter(topic => topic.votes.length > 0).map((topic, index) => (
+                    {sortedTopics.filter(topic => totalVotesForTopic(topic) > 0).map((topic, index) => (
                       <div key={topic.id} className={`flex items-center justify-between ${t.listItem}`} role="listitem">
                         <div className="flex items-center gap-3">
                           <div className={t.rankBadge(index + 1)} aria-label={`Rank ${index + 1}`}>
@@ -185,7 +185,7 @@ export const VotingPhase: React.FC<VotingPhaseProps> = ({
                         </div>
                         <div className={`flex items-center gap-1 ${t.voteColor} font-bold`}>
                           <Heart className="w-4 h-4 fill-current" aria-hidden="true" />
-                          {topic.votes.length}
+                          {totalVotesForTopic(topic)}
                         </div>
                       </div>
                     ))}
@@ -197,7 +197,7 @@ export const VotingPhase: React.FC<VotingPhaseProps> = ({
                     <div className="text-center">
                       <h3 className={`text-xl font-bold ${t.heading} mb-2`}>Ready to discuss?</h3>
                       <p className={`${t.body} mb-6`}>
-                        {sortedTopics.filter(topic => topic.votes.length > 0).length} topic{sortedTopics.filter(topic => topic.votes.length > 0).length !== 1 ? 's' : ''} received votes
+                        {sortedTopics.filter(topic => totalVotesForTopic(topic) > 0).length} topic{sortedTopics.filter(topic => totalVotesForTopic(topic) > 0).length !== 1 ? 's' : ''} received votes
                       </p>
                       <button
                         onClick={() => setConfirmingAdvance(true)}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Heart, Edit2, Trash2, MessageSquare, Plus, Minus } from 'lucide-react';
-import { Topic } from '../types';
+import { Topic, totalVotesForTopic } from '../types';
 import { useTheme } from '../context/ThemeContext';
 
 interface TopicCardProps {
@@ -50,7 +50,7 @@ export const TopicCard: React.FC<TopicCardProps> = ({
     }
   };
 
-  const voteCount = topic.votes.length;
+  const voteCount = totalVotesForTopic(topic);
   const hasVoted = userVoteCount > 0;
 
   return (

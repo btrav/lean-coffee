@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Lightbulb, ArrowRight, UserPlus, Users, X } from 'lucide-react';
+import { Plus, Lightbulb, ArrowRight, X } from 'lucide-react';
 import { Topic, User } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { TopicCard } from './TopicCard';
@@ -13,7 +13,6 @@ interface BrainstormingPhaseProps {
   onEditTopic: (topicId: string, newText: string) => void;
   onDeleteTopic: (topicId: string) => void;
   onNextPhase: () => void;
-  onAddParticipant: (name: string) => void;
   phaseStartTime?: number;
   phaseTimeLimit?: number;
 }
@@ -26,7 +25,6 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
   onEditTopic,
   onDeleteTopic,
   onNextPhase,
-  onAddParticipant,
   phaseStartTime,
   phaseTimeLimit,
 }) => {
@@ -34,7 +32,6 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
   const [newTopic, setNewTopic] = useState('');
   const [showAnimation, setShowAnimation] = useState(false);
   const [confirmingAdvance, setConfirmingAdvance] = useState(false);
-  const [newParticipantName, setNewParticipantName] = useState('');
 
   const submitTopic = () => {
     const trimmed = newTopic.trim();
@@ -50,14 +47,6 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
       e.preventDefault();
       submitTopic();
     }
-  };
-
-  const handleAddParticipant = (e: React.FormEvent) => {
-    e.preventDefault();
-    const name = newParticipantName.trim();
-    if (!name) return;
-    onAddParticipant(name);
-    setNewParticipantName('');
   };
 
   return (
@@ -135,47 +124,6 @@ export const BrainstormingPhase: React.FC<BrainstormingPhaseProps> = ({
             ))}
           </div>
         )}
-
-        {/* Participants */}
-        <div className={`${t.card} mb-6`}>
-          <h3 className={`font-semibold ${t.heading} mb-4 flex items-center gap-2`}>
-            <Users className={`w-5 h-5 ${t.accent}`} aria-hidden="true" />
-            Participants ({participants.length})
-          </h3>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {participants.map((p) => (
-              <span key={p.id} className={t.participantBadge}>
-                <span className={t.participantBadgeAvatar} aria-hidden="true">
-                  {p.name.charAt(0).toUpperCase()}
-                </span>
-                {p.name}
-              </span>
-            ))}
-          </div>
-          <form onSubmit={handleAddParticipant} className="flex gap-2">
-            <label htmlFor="participant-name" className="sr-only">Add participant name</label>
-            <input
-              id="participant-name"
-              type="text"
-              value={newParticipantName}
-              onChange={(e) => setNewParticipantName(e.target.value)}
-              placeholder="Add a participant..."
-              className={`flex-1 ${t.input}`}
-              maxLength={50}
-            />
-            <button
-              type="submit"
-              disabled={!newParticipantName.trim()}
-              className={`px-4 py-2 flex items-center gap-1 ${
-                newParticipantName.trim() ? t.btnSmall : t.btnPrimaryDisabled
-              }`}
-              aria-label="Add participant"
-            >
-              <UserPlus className="w-4 h-4" aria-hidden="true" />
-              Add
-            </button>
-          </form>
-        </div>
 
         {/* Start voting */}
         {topics.length > 0 && (

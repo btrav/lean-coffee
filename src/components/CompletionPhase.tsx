@@ -1,6 +1,6 @@
 import React from 'react';
 import { CheckCircle, Download, RotateCcw, Copy, Users, Clock, Trophy } from 'lucide-react';
-import { Topic, User } from '../types';
+import { Topic, User, totalVotesForTopic } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { exportSummary } from '../utils/roomManager';
 
@@ -19,7 +19,7 @@ export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
 }) => {
   const { theme: t } = useTheme();
   const discussedTopics = topics.filter(t => t.discussed);
-  const skippedTopics = topics.filter(t => !t.discussed && t.votes.length > 0);
+  const skippedTopics = topics.filter(t => !t.discussed && totalVotesForTopic(t) > 0);
   const totalTimeSpent = discussedTopics.reduce((sum, topic) => sum + topic.timeSpent, 0);
 
   const handleExport = () => {
@@ -192,7 +192,7 @@ export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
                       {index + 1}. {topic.text}
                     </h4>
                     <div className={`text-sm ${t.muted} text-right shrink-0 ml-4`}>
-                      <div>{topic.votes.length} vote{topic.votes.length !== 1 ? 's' : ''}</div>
+                      <div>{totalVotesForTopic(topic)} vote{totalVotesForTopic(topic) !== 1 ? 's' : ''}</div>
                       <div>{formatTime(topic.timeSpent)}</div>
                     </div>
                   </div>
@@ -220,7 +220,7 @@ export const CompletionPhase: React.FC<CompletionPhaseProps> = ({
                 <div key={topic.id} className={t.listItem}>
                   <div className={`font-medium ${t.heading} mb-2`}>{topic.text}</div>
                   <div className={`text-sm ${t.body}`}>
-                    by {topic.authorName} · {topic.votes.length} vote{topic.votes.length !== 1 ? 's' : ''}
+                    by {topic.authorName} · {totalVotesForTopic(topic)} vote{totalVotesForTopic(topic) !== 1 ? 's' : ''}
                   </div>
                 </div>
               ))}

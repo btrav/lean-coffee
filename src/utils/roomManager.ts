@@ -1,3 +1,5 @@
+import { Topic, User, totalVotesForTopic } from '../types';
+
 const CODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
 export const generateRoomCode = (): string =>
@@ -6,10 +8,10 @@ export const generateRoomCode = (): string =>
 export const generateUserId = (): string =>
   Array.from({ length: 12 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
 
-export const exportSummary = (topics: any[], roomCode: string, participants: any[]): string => {
+export const exportSummary = (topics: Topic[], roomCode: string, participants: User[]): string => {
   const discussedTopics = topics.filter(t => t.discussed);
-  const skippedTopics = topics.filter(t => !t.discussed && t.votes.length > 0);
-  const totalTimeSpent = discussedTopics.reduce((sum: number, topic: any) => sum + topic.timeSpent, 0);
+  const skippedTopics = topics.filter(t => !t.discussed && totalVotesForTopic(t) > 0);
+  const totalTimeSpent = discussedTopics.reduce((sum, topic) => sum + topic.timeSpent, 0);
 
   let summary = `# Lean Coffee Session Summary\n\n`;
   summary += `**Session ID:** ${roomCode}\n`;
@@ -17,7 +19,7 @@ export const exportSummary = (topics: any[], roomCode: string, participants: any
   summary += `**Time:** ${new Date().toLocaleTimeString()}\n\n`;
 
   summary += `## Participants (${participants.length})\n\n`;
-  participants.forEach((participant: any) => {
+  participants.forEach((participant) => {
     summary += `- ${participant.name}\n`;
   });
   summary += `\n`;
@@ -30,12 +32,12 @@ export const exportSummary = (topics: any[], roomCode: string, participants: any
 
   if (discussedTopics.length > 0) {
     summary += `## Discussed Topics\n\n`;
-    discussedTopics.forEach((topic: any, index: number) => {
+    discussedTopics.forEach((topic, index) => {
       const minutes = Math.floor(topic.timeSpent / 60);
       const seconds = topic.timeSpent % 60;
       summary += `### ${index + 1}. ${topic.text}\n\n`;
       summary += `**Author:** ${topic.authorName}\n`;
-      summary += `**Votes:** ${topic.votes.length}\n`;
+      summary += `**Votes:** ${totalVotesForTopic(topic)}\n`;
       summary += `**Time Spent:** ${minutes}:${seconds.toString().padStart(2, '0')}\n\n`;
       if (topic.takeaways && topic.takeaways.trim()) {
         summary += `**Key Takeaways & Next Steps:**\n`;
@@ -48,8 +50,8 @@ export const exportSummary = (topics: any[], roomCode: string, participants: any
   if (skippedTopics.length > 0) {
     summary += `## Topics Not Discussed\n\n`;
     summary += `*Consider these topics for your next Lean Coffee session:*\n\n`;
-    skippedTopics.forEach((topic: any, index: number) => {
-      summary += `${index + 1}. **${topic.text}** (${topic.votes.length} votes) - by ${topic.authorName}\n`;
+    skippedTopics.forEach((topic, index) => {
+      summary += `${index + 1}. **${topic.text}** (${totalVotesForTopic(topic)} votes) - by ${topic.authorName}\n`;
     });
     summary += `\n`;
   }

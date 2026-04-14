@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, Plus } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Clock, Plus, AlertTriangle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 interface TimerProps {
@@ -8,6 +8,8 @@ interface TimerProps {
   isRunning: boolean;
   onExtend: () => void;
   onTimeUpdate: (timeSpent: number) => void;
+  warningThreshold?: number; // seconds remaining to trigger warning (default 120)
+  onTimeWarning?: () => void;
 }
 
 export const Timer: React.FC<TimerProps> = ({
@@ -15,44 +17,68 @@ export const Timer: React.FC<TimerProps> = ({
   onTimeUp,
   isRunning,
   onExtend,
-  onTimeUpdate
+  onTimeUpdate,
+  warningThreshold = 120,
+  onTimeWarning,
 }) => {
   const { theme: t } = useTheme();
   const [timeLeft, setTimeLeft] = useState(initialTime);
   const [timeSpent, setTimeSpent] = useState(0);
+  const [showWarning, setShowWarning] = useState(false);
+  const warningFiredRef = useRef(false);
+
+  // Stable refs so the interval closure always sees the latest callbacks
+  const onTimeUpRef = useRef(onTimeUp);
+  const onTimeUpdateRef = useRef(onTimeUpdate);
+  const onTimeWarningRef = useRef(onTimeWarning);
+  useEffect(() => { onTimeUpRef.current = onTimeUp; }, [onTimeUp]);
+  useEffect(() => { onTimeUpdateRef.current = onTimeUpdate; }, [onTimeUpdate]);
+  useEffect(() => { onTimeWarningRef.current = onTimeWarning; }, [onTimeWarning]);
 
   useEffect(() => {
     setTimeLeft(initialTime);
     setTimeSpent(0);
+    setShowWarning(false);
+    warningFiredRef.current = false;
   }, [initialTime]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    if (!isRunning || timeLeft <= 0) return;
 
-    if (isRunning && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft(prev => {
-          const newTime = prev - 1;
-          if (newTime === 0) {
-            onTimeUp();
-          }
-          return newTime;
-        });
-        setTimeSpent(prev => {
-          const newSpent = prev + 1;
-          onTimeUpdate(newSpent);
-          return newSpent;
-        });
-      }, 1000);
-    }
+    const interval = setInterval(() => {
+      setTimeLeft(prev => {
+        const newTime = prev - 1;
+        if (newTime === 0) {
+          onTimeUpRef.current();
+        }
+        // Fire warning once when crossing the threshold
+        if (!warningFiredRef.current && newTime <= warningThreshold && newTime > 0) {
+          warningFiredRef.current = true;
+          setShowWarning(true);
+          onTimeWarningRef.current?.();
+        }
+        return newTime;
+      });
+      setTimeSpent(prev => {
+        const newSpent = prev + 1;
+        onTimeUpdateRef.current(newSpent);
+        return newSpent;
+      });
+    }, 1000);
 
     return () => clearInterval(interval);
-    // timeLeft is intentionally included so the effect re-runs (and the interval
-    // is cleared) the moment timeLeft hits 0 — prevents ticking past zero
-  }, [isRunning, timeLeft, onTimeUp, onTimeUpdate]);
+  }, [isRunning, timeLeft <= 0, warningThreshold]);
+
+  // Hide warning if time is extended past the threshold
+  useEffect(() => {
+    if (timeLeft > warningThreshold) {
+      setShowWarning(false);
+      warningFiredRef.current = false;
+    }
+  }, [timeLeft, warningThreshold]);
 
   const handleExtend = () => {
-    setTimeLeft(prev => prev + 60); // Add 1 minute
+    setTimeLeft(prev => prev + 60);
     onExtend();
   };
 
@@ -98,9 +124,18 @@ export const Timer: React.FC<TimerProps> = ({
         />
       </div>
 
+      {showWarning && !isTimeUp && (
+        <div className={`mt-4 p-3 ${t.warningBg} border border-orange-200 rounded-lg`} role="alert">
+          <p className={`${t.warningText} text-center font-medium flex items-center justify-center gap-2`}>
+            <AlertTriangle className="w-4 h-4" aria-hidden="true" />
+            2 minutes remaining
+          </p>
+        </div>
+      )}
+
       {isTimeUp && (
         <div className={`mt-4 p-3 ${t.dangerBg} border border-red-200 rounded-lg`}>
-          <p className={`${t.dangerText} text-center font-medium`}>⏰ Time's up! Ready to move on?</p>
+          <p className={`${t.dangerText} text-center font-medium`}>Time's up! Ready to move on?</p>
         </div>
       )}
     </div>

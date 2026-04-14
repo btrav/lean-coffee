@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageSquare, ArrowRight, SkipForward, Clock, CheckCircle, Edit3 } from 'lucide-react';
-import { Topic, User } from '../types';
+import { Topic, User, totalVotesForTopic } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { TopicCard } from './TopicCard';
 import { Timer } from './Timer';
@@ -45,8 +45,8 @@ export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
   const takeawaysRef = useRef<string>('');
 
   const sortedTopics = [...topics]
-    .sort((a, b) => b.votes.length - a.votes.length)
-    .filter(topic => topic.votes.length > 0);
+    .sort((a, b) => totalVotesForTopic(b) - totalVotesForTopic(a))
+    .filter(topic => totalVotesForTopic(topic) > 0);
 
   const currentTopic = sortedTopics[currentTopicIndex];
   const isLastTopic = currentTopicIndex >= sortedTopics.length - 1;
@@ -58,6 +58,7 @@ export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
       setTakeaways(initial);
       takeawaysRef.current = initial;
     }
+    setShowTimeWarning(false);
   }, [currentTopic?.id]);
 
   useEffect(() => {
@@ -75,15 +76,17 @@ export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
     return () => clearInterval(interval);
   }, [currentTopic?.id, onUpdateTakeaways]);
 
-  const handleTimeUp = () => {
+  const [showTimeWarning, setShowTimeWarning] = useState(false);
+
+  const handleTimeUp = useCallback(() => {
     setShowTimeUpOptions(true);
     setIsTimerRunning(false);
-  };
+  }, []);
 
-  const handleContinueDiscussion = () => {
+  const handleContinueDiscussion = useCallback(() => {
     setShowTimeUpOptions(false);
     setIsTimerRunning(true);
-  };
+  }, []);
 
   const handleMoveOn = () => {
     if (currentTopic) {
@@ -108,11 +111,15 @@ export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
     }
   };
 
-  const handleTimeUpdate = (timeSpent: number) => {
+  const handleTimeUpdate = useCallback((timeSpent: number) => {
     if (currentTopic) {
       onUpdateTopicTime(currentTopic.id, timeSpent);
     }
-  };
+  }, [currentTopic?.id, onUpdateTopicTime]);
+
+  const handleTimeWarning = useCallback(() => {
+    setShowTimeWarning(true);
+  }, []);
 
   const stepLabels = ['Discussion', 'Key Takeaways'];
 
@@ -244,6 +251,7 @@ export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
                 isRunning={isTimerRunning}
                 onExtend={() => {}}
                 onTimeUpdate={handleTimeUpdate}
+                onTimeWarning={handleTimeWarning}
               />
             </div>
           </div>
