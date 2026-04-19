@@ -9,8 +9,6 @@ export interface Theme {
   card: string;
   cardActive: string;
   cardAlert: string;
-  dialog: string;
-  overlay: string;
   listItem: string;
   infoBox: string;
 
@@ -20,7 +18,6 @@ export interface Theme {
   btnConfirm: string;
   btnSecondary: string;
   btnOutline: string;
-  btnDanger: string;
   btnSmall: string;
   btnGhost: string;
   btnIconVoteActive: string;
@@ -44,7 +41,6 @@ export interface Theme {
   // Accent
   accent: string;
   accentBg: string;
-  accentBorder: string;
 
   // Status (same across themes)
   successText: string;
@@ -90,8 +86,6 @@ const notion: Theme = {
   card: 'bg-white rounded-xl shadow-sm p-6 border border-gray-200',
   cardActive: 'bg-white rounded-xl shadow-sm border-2 border-blue-400 p-6',
   cardAlert: 'bg-white rounded-xl shadow-sm p-6 border-2 border-orange-300',
-  dialog: 'bg-white rounded-xl shadow-lg p-8 max-w-sm w-full border border-gray-200',
-  overlay: 'fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-6',
   listItem: 'bg-gray-50 rounded-lg p-3',
   infoBox: 'bg-blue-50 rounded-lg p-4 border border-blue-100',
 
@@ -100,7 +94,6 @@ const notion: Theme = {
   btnConfirm: 'bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm',
   btnSecondary: 'bg-gray-100 text-gray-800 rounded-lg font-medium hover:bg-gray-200 transition-colors',
   btnOutline: 'border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors',
-  btnDanger: 'bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors',
   btnSmall: 'bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors',
   btnGhost: 'text-gray-600 hover:text-gray-900 font-medium transition-colors',
 
@@ -121,7 +114,6 @@ const notion: Theme = {
 
   accent: 'text-blue-600',
   accentBg: 'bg-blue-50',
-  accentBorder: 'border-blue-200',
 
   successText: 'text-green-600',
   successBg: 'bg-green-50',
@@ -169,8 +161,6 @@ const warm: Theme = {
   card: 'bg-white rounded-2xl p-6 border border-stone-200',
   cardActive: 'bg-white rounded-2xl border-2 border-amber-400 p-6',
   cardAlert: 'bg-white rounded-2xl p-6 border-2 border-orange-300',
-  dialog: 'bg-white rounded-2xl p-8 max-w-sm w-full border border-stone-200',
-  overlay: 'fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-6',
   listItem: 'bg-stone-50 rounded-xl p-3',
   infoBox: 'bg-amber-50 rounded-xl p-4 border border-amber-100',
 
@@ -179,7 +169,6 @@ const warm: Theme = {
   btnConfirm: 'bg-amber-700 text-white rounded-xl font-medium hover:bg-amber-800 transition-colors',
   btnSecondary: 'bg-stone-100 text-stone-700 rounded-xl font-medium hover:bg-stone-200 transition-colors',
   btnOutline: 'border border-stone-300 text-stone-600 rounded-xl font-medium hover:bg-stone-50 transition-colors',
-  btnDanger: 'bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors',
   btnSmall: 'bg-stone-100 text-stone-600 rounded-xl text-sm font-medium hover:bg-stone-200 transition-colors',
   btnGhost: 'text-amber-700 hover:text-amber-900 font-medium transition-colors',
 
@@ -200,7 +189,6 @@ const warm: Theme = {
 
   accent: 'text-amber-700',
   accentBg: 'bg-amber-50',
-  accentBorder: 'border-amber-200',
 
   successText: 'text-green-600',
   successBg: 'bg-green-50',
@@ -248,8 +236,6 @@ const ink: Theme = {
   card: 'bg-white rounded-md p-6 border border-gray-200',
   cardActive: 'bg-white rounded-md border-2 border-indigo-500 p-6',
   cardAlert: 'bg-white rounded-md p-6 border-2 border-orange-400',
-  dialog: 'bg-white rounded-md p-8 max-w-sm w-full border border-gray-300',
-  overlay: 'fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6',
   listItem: 'bg-gray-50 rounded-md p-3',
   infoBox: 'bg-indigo-50 rounded-md p-4 border border-indigo-100',
 
@@ -258,7 +244,6 @@ const ink: Theme = {
   btnConfirm: 'bg-indigo-600 text-white rounded-md font-medium hover:bg-indigo-700 transition-colors',
   btnSecondary: 'bg-gray-100 text-gray-800 rounded-md font-medium hover:bg-gray-200 transition-colors',
   btnOutline: 'border border-gray-300 text-gray-700 rounded-md font-medium hover:bg-gray-50 transition-colors',
-  btnDanger: 'bg-red-600 text-white rounded-md font-medium hover:bg-red-700 transition-colors',
   btnSmall: 'bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors',
   btnGhost: 'text-indigo-600 hover:text-indigo-800 font-medium transition-colors',
 
@@ -279,7 +264,6 @@ const ink: Theme = {
 
   accent: 'text-indigo-600',
   accentBg: 'bg-indigo-50',
-  accentBorder: 'border-indigo-200',
 
   successText: 'text-green-600',
   successBg: 'bg-green-50',

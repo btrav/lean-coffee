@@ -6,7 +6,6 @@ interface TimerProps {
   initialTime: number; // in seconds
   onTimeUp: () => void;
   isRunning: boolean;
-  onExtend: () => void;
   onTimeUpdate: (timeSpent: number) => void;
   warningThreshold?: number; // seconds remaining to trigger warning (default 120)
   onTimeWarning?: () => void;
@@ -16,7 +15,6 @@ export const Timer: React.FC<TimerProps> = ({
   initialTime,
   onTimeUp,
   isRunning,
-  onExtend,
   onTimeUpdate,
   warningThreshold = 120,
   onTimeWarning,
@@ -79,7 +77,6 @@ export const Timer: React.FC<TimerProps> = ({
 
   const handleExtend = () => {
     setTimeLeft(prev => prev + 60);
-    onExtend();
   };
 
   const formatTime = (seconds: number): string => {

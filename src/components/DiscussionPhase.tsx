@@ -249,7 +249,6 @@ export const DiscussionPhase: React.FC<DiscussionPhaseProps> = ({
                 initialTime={discussionTimeLimit}
                 onTimeUp={handleTimeUp}
                 isRunning={isTimerRunning}
-                onExtend={() => {}}
                 onTimeUpdate={handleTimeUpdate}
                 onTimeWarning={handleTimeWarning}
               />
